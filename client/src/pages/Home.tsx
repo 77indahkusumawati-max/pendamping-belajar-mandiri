@@ -1,5 +1,6 @@
 // Signal & Focus: editorial dashboard untuk belajar mandiri—jelas, suportif, terarah.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   ArrowUpRight,
@@ -36,15 +37,23 @@ const subjects = [
   { name: "Produktif RPL", count: "16 materi", color: "ochre", symbol: "</>" },
 ];
 
-const initialTasks = [
+type Task = { id: number; title: string; meta: string; done: boolean };
+
+const initialTasks: Task[] = [
   { id: 1, title: "Pahami konsep fungsi", meta: "Matematika · 18 menit", done: true },
   { id: 2, title: "Latihan persamaan kuadrat", meta: "Matematika · 15 soal", done: false },
   { id: 3, title: "Baca rangkuman HTML dasar", meta: "Produktif RPL · 12 menit", done: false },
 ];
 
 export default function Home() {
+  const [, navigate] = useLocation();
   const [activeNav, setActiveNav] = useState("Ringkasan");
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    const saved = localStorage.getItem("temanbelajar_tasks");
+    return saved ? JSON.parse(saved) : initialTasks;
+  });
+  const userName = localStorage.getItem("temanbelajar_user") || "teman belajar";
+  useEffect(() => { localStorage.setItem("temanbelajar_tasks", JSON.stringify(tasks)); }, [tasks]);
   const [query, setQuery] = useState("");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
@@ -57,7 +66,7 @@ export default function Home() {
   );
 
   const toggleTask = (id: number) => {
-    setTasks((current) => current.map((task) => (task.id === id ? { ...task, done: !task.done } : task)));
+    setTasks((current: Task[]) => current.map((task: Task) => (task.id === id ? { ...task, done: !task.done } : task)));
     toast.success("Progres belajar diperbarui", { description: "Langkahmu tersimpan di sesi hari ini." });
   };
 
@@ -116,7 +125,7 @@ export default function Home() {
               <button onClick={() => setShowMobileMenu(true)} className="rounded-xl p-2 hover:bg-[#ebe4d8] lg:hidden" aria-label="Buka menu"><Menu size={21} /></button>
               <div>
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a938d]">Rabu, 26 Agustus 2026</p>
-                <h1 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">Halo, teman belajar<span className="text-[#e4694b]">.</span></h1>
+                <h1 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">Halo, {userName}<span className="text-[#e4694b]">.</span></h1>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
@@ -132,7 +141,7 @@ export default function Home() {
               <div className="mb-5 flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#e4694b]" /><span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#f5b09f]">langkah berikutnya</span></div>
               <h2 className="max-w-lg font-display text-3xl font-bold leading-[1.05] tracking-[-0.03em] text-[#fbf8f3] sm:text-[42px]">Mulai dari yang<br /><span className="text-[#f5b09f]">paling jelas.</span></h2>
               <p className="mt-4 max-w-md text-sm leading-6 text-[#c4cec7]">Selesaikan satu langkah kecil hari ini. Kamu sedang membangun ritme yang akan membantu memahami lebih banyak.</p>
-              <button onClick={() => handleAction("Materi dibuka")} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#e4694b] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(228,105,75,.22)] transition hover:-translate-y-0.5 hover:bg-[#ef795b] active:scale-[.98]">Lanjutkan belajar <ArrowUpRight size={16} /></button>
+              <button onClick={() => navigate("/materi/Matematika")} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#e4694b] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(228,105,75,.22)] transition hover:-translate-y-0.5 hover:bg-[#ef795b] active:scale-[.98]">Lanjutkan belajar <ArrowUpRight size={16} /></button>
             </div>
             <div className="absolute bottom-5 right-6 hidden text-right sm:block"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8da092]">sesi aktif</p><p className="mt-1 font-display text-2xl font-bold text-[#fbf8f3]">18 <span className="text-sm font-medium text-[#aab8af]">menit</span></p></div>
           </section>
@@ -151,7 +160,7 @@ export default function Home() {
               <section className="mb-8">
                 <div className="mb-4 flex items-end justify-between"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">checklist hari ini</p><h2 className="mt-1 font-display text-xl font-bold tracking-tight">Rencana belajar</h2></div><button onClick={() => handleAction("Rencana belajar baru")} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-[#65716a] transition hover:bg-[#ebe4d8] hover:text-[#1c2421]"><Plus size={15} /> Tambah</button></div>
                 <div className="rounded-2xl border border-[#1c2421]/10 bg-[#fbf8f3] p-2 shadow-[0_8px_24px_rgba(28,36,33,.04)]">
-                  {tasks.map((task) => <button key={task.id} onClick={() => toggleTask(task.id)} className="group flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left transition hover:bg-[#f1ece3]">
+                  {tasks.map((task: Task) => <button key={task.id} onClick={() => toggleTask(task.id)} className="group flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left transition hover:bg-[#f1ece3]">
                     <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition ${task.done ? "border-[#6e9978] bg-[#6e9978] text-white" : "border-[#c4cec7] text-transparent group-hover:border-[#e4694b]"}`}>{task.done && <Check size={14} strokeWidth={3} />}</span>
                     <span className="min-w-0 flex-1"><span className={`block text-sm font-bold ${task.done ? "text-[#8a938d] line-through" : "text-[#1c2421]"}`}>{task.title}</span><span className="mt-1 block text-xs text-[#8a938d]">{task.meta}</span></span><ChevronRight size={16} className="text-[#b1b9b3] transition group-hover:translate-x-0.5 group-hover:text-[#e4694b]" />
                   </button>)}
@@ -160,7 +169,7 @@ export default function Home() {
 
               <section>
                 <div className="mb-4 flex items-end justify-between"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">pilihan untukmu</p><h2 className="mt-1 font-display text-xl font-bold tracking-tight">Materi populer</h2></div><button onClick={() => setActiveNav("Materi belajar")} className="flex items-center gap-1 text-xs font-bold text-[#e4694b] transition hover:gap-2">Semua materi <ChevronRight size={15} /></button></div>
-                <div className="grid gap-3 sm:grid-cols-3">{filteredSubjects.map((subject) => <SubjectCard key={subject.name} subject={subject} onClick={() => handleAction(`${subject.name} dipilih`)} />)}</div>
+                <div className="grid gap-3 sm:grid-cols-3">{filteredSubjects.map((subject) => <SubjectCard key={subject.name} subject={subject} onClick={() => navigate(`/materi/${encodeURIComponent(subject.name)}`)} />)}</div>
                 {filteredSubjects.length === 0 && <div className="rounded-2xl border border-dashed border-[#1c2421]/15 p-8 text-center text-sm text-[#8a938d]">Materi tidak ditemukan. Coba kata kunci lain.</div>}
               </section>
             </div>
@@ -168,7 +177,7 @@ export default function Home() {
             <aside className="space-y-5">
               <div className="overflow-hidden rounded-2xl border border-[#1c2421]/10 bg-[#fbf8f3] shadow-[0_8px_24px_rgba(28,36,33,.04)]">
                 <div className="flex items-start justify-between p-5 pb-3"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">evaluasi cepat</p><h3 className="mt-1 font-display text-lg font-bold">Kuis hari ini</h3></div><span className="rounded-lg bg-[#f5dfd8] p-2 text-[#c8563d]"><Brain size={18} /></span></div>
-                <div className="px-5 pb-5"><p className="text-sm font-semibold leading-5">Seberapa paham kamu dengan fungsi kuadrat?</p><div className="mt-4 flex items-center gap-3 text-xs text-[#8a938d]"><span className="flex items-center gap-1"><CircleHelp size={14} /> 5 soal</span><span className="flex items-center gap-1"><Clock3 size={14} /> 8 menit</span></div><button onClick={() => handleAction("Kuis dimulai")} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1c2421] py-3 text-sm font-bold text-[#f6f1e8] transition hover:bg-[#31443b] active:scale-[.98]"><Play size={15} fill="currentColor" /> Mulai kuis</button></div>
+                <div className="px-5 pb-5"><p className="text-sm font-semibold leading-5">Seberapa paham kamu dengan fungsi kuadrat?</p><div className="mt-4 flex items-center gap-3 text-xs text-[#8a938d]"><span className="flex items-center gap-1"><CircleHelp size={14} /> 5 soal</span><span className="flex items-center gap-1"><Clock3 size={14} /> 8 menit</span></div><button onClick={() => navigate("/kuis")} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1c2421] py-3 text-sm font-bold text-[#f6f1e8] transition hover:bg-[#31443b] active:scale-[.98]"><Play size={15} fill="currentColor" /> Mulai kuis</button></div>
               </div>
               <div className="relative overflow-hidden rounded-2xl bg-[#dce8d9] p-5"><img src={pathImage} alt="Ilustrasi jalur belajar" className="absolute -bottom-5 -right-8 h-32 w-32 object-cover opacity-60 mix-blend-multiply" /><div className="relative z-10"><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#52715b]">cara belajarmu</p><h3 className="mt-2 max-w-[160px] font-display text-xl font-bold leading-tight text-[#31483a]">Pelan, tapi konsisten.</h3><button onClick={() => handleAction("Tips belajar dibuka")} className="mt-4 flex items-center gap-1 text-xs font-bold text-[#52715b]">Baca tips <ArrowUpRight size={14} /></button></div></div>
               <div className="overflow-hidden rounded-2xl bg-[#f0dfc2]"><img src={deskImage} alt="Detail meja belajar" className="h-28 w-full object-cover mix-blend-multiply opacity-80" /><div className="flex items-center justify-between p-4"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#89683b]">mode fokus</p><p className="mt-1 text-sm font-bold text-[#5b452b]">25 menit tanpa distraksi</p></div><button onClick={() => setFocusMode(!focusMode)} className={`rounded-xl p-2.5 transition ${focusMode ? "bg-[#e4694b] text-white" : "bg-[#fbf8f3]/70 text-[#89683b] hover:bg-[#fbf8f3]"}`} aria-label="Aktifkan mode fokus"><TimerReset size={18} /></button></div></div>
