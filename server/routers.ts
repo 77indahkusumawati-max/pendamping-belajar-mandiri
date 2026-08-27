@@ -1,9 +1,9 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { adminProcedure, publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { addMaterialComment, addQuizAttempt, getBookmarkedSubjects, getLeaderboard, getMaterialComments, getRecentQuizAttempts, getStudyProgress, toggleMaterialBookmark, upsertStudyProgress } from "./db";
+import { addMaterialComment, addQuizAttempt, deleteMaterialComment, getAIConversation, getBookmarkedSubjects, getLeaderboard, getMaterialComments, getRecentQuizAttempts, getStudyProgress, moderateMaterialComment, saveAIConversation, toggleMaterialBookmark, updateMaterialComment, upsertStudyProgress } from "./db";
 import { invokeLLM } from "./_core/llm";
 
 export const appRouter = router({
@@ -66,14 +66,20 @@ export const appRouter = router({
   materials: router({
     bookmarks: protectedProcedure.query(({ ctx }) => getBookmarkedSubjects(ctx.user.id)),
     toggleBookmark: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120) })).mutation(({ ctx, input }) => toggleMaterialBookmark(ctx.user.id, input.subject)),
-    comments: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120) })).query(({ input }) => getMaterialComments(input.subject)),
+    comments: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120) })).query(({ ctx, input }) => getMaterialComments(input.subject, ctx.user.id, ctx.user.role === "admin")),
     addComment: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120), body: z.string().trim().min(2).max(1000) })).mutation(({ ctx, input }) => addMaterialComment({ userId: ctx.user.id, ...input })),
-    askAI: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120), question: z.string().trim().min(2).max(1000) })).mutation(async ({ input }) => {
+    updateComment: protectedProcedure.input(z.object({ id: z.number().int().positive(), body: z.string().trim().min(2).max(1000) })).mutation(({ ctx, input }) => updateMaterialComment(input.id, ctx.user.id, input.body)),
+    deleteComment: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => deleteMaterialComment(input.id, ctx.user.id, ctx.user.role === "admin")),
+    moderateComment: adminProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["visible", "hidden"]) })).mutation(({ input }) => moderateMaterialComment(input.id, input.status)),
+    conversation: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120) })).query(({ ctx, input }) => getAIConversation(ctx.user.id, input.subject)),
+    askAI: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120), question: z.string().trim().min(2).max(1000) })).mutation(async ({ ctx, input }) => {
       const response = await invokeLLM({ messages: [
         { role: "system", content: "Kamu adalah Teman AI, pendamping belajar untuk pelajar SMK. Jawab dalam bahasa Indonesia yang sederhana, bertahap, dan tidak mengarang sumber. Jika pertanyaan di luar materi, arahkan kembali dengan sopan." },
         { role: "user", content: `Materi: ${input.subject}\nPertanyaan: ${input.question}` },
       ] });
-      return { answer: String(response.choices[0]?.message?.content ?? "Maaf, jawaban AI belum tersedia.") };
+      const answer = String(response.choices[0]?.message?.content ?? "Maaf, jawaban AI belum tersedia.");
+      await saveAIConversation(ctx.user.id, input.subject, [{ role: "user", message: input.question }, { role: "assistant", message: answer }]);
+      return { answer };
     }),
   }),
 });

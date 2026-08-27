@@ -24,16 +24,40 @@ function AuthHome() {
   return <RequireAuth><Home /></RequireAuth>;
 }
 
+function ProtectedMaterialsCatalog() {
+  return <RequireAuth><MaterialsCatalog /></RequireAuth>;
+}
+
+function ProtectedMaterials() {
+  return <RequireAuth><Materials /></RequireAuth>;
+}
+
+function ProtectedQuiz() {
+  return <RequireAuth><Quiz /></RequireAuth>;
+}
+
+function ProtectedProgress() {
+  return <RequireAuth><Progress /></RequireAuth>;
+}
+
+function ProtectedLeaderboard() {
+  return <RequireAuth><Leaderboard /></RequireAuth>;
+}
+
+function ProtectedProfile() {
+  return <RequireAuth><Profile /></RequireAuth>;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/materi" component={() => <RequireAuth><MaterialsCatalog /></RequireAuth>} />
-      <Route path="/materi/:subject" component={() => <RequireAuth><Materials /></RequireAuth>} />
-      <Route path="/kuis" component={() => <RequireAuth><Quiz /></RequireAuth>} />
-      <Route path="/progres" component={() => <RequireAuth><Progress /></RequireAuth>} />
-      <Route path="/leaderboard" component={() => <RequireAuth><Leaderboard /></RequireAuth>} />
-      <Route path="/profil" component={() => <RequireAuth><Profile /></RequireAuth>} />
+      <Route path="/materi" component={ProtectedMaterialsCatalog} />
+      <Route path="/materi/:subject" component={ProtectedMaterials} />
+      <Route path="/kuis" component={ProtectedQuiz} />
+      <Route path="/progres" component={ProtectedProgress} />
+      <Route path="/leaderboard" component={ProtectedLeaderboard} />
+      <Route path="/profil" component={ProtectedProfile} />
       <Route path="/" component={AuthHome} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

@@ -57,10 +57,21 @@ export const materialBookmarks = mysqlTable("materialBookmarks", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({ userSubjectUnique: uniqueIndex("materialBookmarks_user_subject").on(table.userId, table.subject) }));
 
+export const aiConversations = mysqlTable("aiConversations", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  subject: varchar("subject", { length: 120 }).notNull(),
+  role: varchar("role", { length: 16 }).notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const materialComments = mysqlTable("materialComments", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   subject: varchar("subject", { length: 120 }).notNull(),
   body: text("body").notNull(),
+  status: varchar("status", { length: 16 }).default("visible").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

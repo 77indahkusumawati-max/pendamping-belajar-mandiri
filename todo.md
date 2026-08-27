@@ -67,3 +67,13 @@
 - [x] Tambahkan test, validasi responsif, dan checkpoint fitur baru.
 
 - [x] Simpan checkpoint baru setelah fitur pencarian/filter, bookmark, diskusi, AI, dan validasi final selesai.
+
+- [x] Tambahkan filter khusus Materi tersimpan dan pemilihan topik belajar.
+- [x] Tambahkan tabel serta API riwayat percakapan AI per materi.
+- [x] Tambahkan edit, hapus, dan moderasi komentar milik pengguna.
+- [x] Tambahkan katalog tautan sumber belajar publik yang legal dan dapat diverifikasi.
+- [x] Tambahkan test, validasi, dan checkpoint fitur baru.
+
+- [x] Tambahkan alur moderasi komentar untuk admin pada antarmuka atau dokumentasikan akses server-only secara eksplisit.
+- [x] Tambahkan unit test untuk conversation, updateComment, deleteComment, dan moderateComment.
+- [x] Simpan checkpoint baru setelah verifikasi batch fitur terbaru selesai.

@@ -1,8 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, materialBookmarks, materialComments, quizAttempts, studyProgress, users } from "../drizzle/schema";
+import { InsertUser, aiConversations, materialBookmarks, materialComments, quizAttempts, studyProgress, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { and } from "drizzle-orm";
+import { and, or } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -170,15 +170,55 @@ export async function toggleMaterialBookmark(userId: number, subject: string) {
   return { bookmarked: true };
 }
 
-export async function getMaterialComments(subject: string) {
+export async function getMaterialComments(subject: string, viewerId?: number, isAdmin = false) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  return db.select({ id: materialComments.id, subject: materialComments.subject, body: materialComments.body, createdAt: materialComments.createdAt, userId: materialComments.userId, userName: users.name }).from(materialComments).leftJoin(users, eq(materialComments.userId, users.id)).where(eq(materialComments.subject, subject)).orderBy(desc(materialComments.createdAt));
+  const visibility = isAdmin || viewerId === undefined ? eq(materialComments.subject, subject) : and(eq(materialComments.subject, subject), or(eq(materialComments.status, "visible"), eq(materialComments.userId, viewerId)));
+  return db.select({ id: materialComments.id, subject: materialComments.subject, body: materialComments.body, status: materialComments.status, createdAt: materialComments.createdAt, userId: materialComments.userId, userName: users.name }).from(materialComments).leftJoin(users, eq(materialComments.userId, users.id)).where(visibility).orderBy(desc(materialComments.createdAt));
+}
+
+export async function updateMaterialComment(id: number, userId: number, body: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db.select().from(materialComments).where(and(eq(materialComments.id, id), eq(materialComments.userId, userId))).limit(1);
+  if (!existing.length) throw new Error("Komentar tidak ditemukan atau bukan milikmu");
+  await db.update(materialComments).set({ body }).where(eq(materialComments.id, id));
+  return getMaterialComments(existing[0].subject, userId);
+}
+
+export async function deleteMaterialComment(id: number, userId: number, isAdmin = false) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db.select().from(materialComments).where(eq(materialComments.id, id)).limit(1);
+  if (!existing.length || (!isAdmin && existing[0].userId !== userId)) throw new Error("Komentar tidak dapat dihapus");
+  await db.delete(materialComments).where(eq(materialComments.id, id));
+  return { success: true };
+}
+
+export async function moderateMaterialComment(id: number, status: "visible" | "hidden") {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(materialComments).set({ status }).where(eq(materialComments.id, id));
+  return { success: true };
 }
 
 export async function addMaterialComment(input: { userId: number; subject: string; body: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.insert(materialComments).values(input);
-  return getMaterialComments(input.subject);
+  return getMaterialComments(input.subject, input.userId);
+}
+
+
+export async function getAIConversation(userId: number, subject: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(aiConversations).where(and(eq(aiConversations.userId, userId), eq(aiConversations.subject, subject))).orderBy(aiConversations.createdAt);
+}
+
+export async function saveAIConversation(userId: number, subject: string, entries: Array<{ role: "user" | "assistant"; message: string }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  if (entries.length) await db.insert(aiConversations).values(entries.map((entry) => ({ userId, subject, role: entry.role, message: entry.message })));
+  return getAIConversation(userId, subject);
 }
