@@ -44,6 +44,9 @@ const subjects = [
   { name: "Informatika", count: "1 materi", color: "sage", symbol: "{}" },
   { name: "Bahasa Inggris", count: "1 materi", color: "ochre", symbol: "Ab" },
   { name: "Pendidikan Pancasila", count: "1 materi", color: "coral", symbol: "P" },
+  { name: "Basis Data", count: "1 materi", color: "sage", symbol: "DB" },
+  { name: "Desain UI/UX", count: "1 materi", color: "ochre", symbol: "UI" },
+  { name: "Jaringan Komputer", count: "1 materi", color: "coral", symbol: "IP" },
 ];
 
 type Task = { id: number; title: string; meta: string; done: boolean };
@@ -187,7 +190,7 @@ export default function Home() {
 
         {showMobileMenu && <button aria-label="Tutup menu" onClick={() => setShowMobileMenu(false)} className="fixed inset-0 z-30 bg-[#1c2421]/20 lg:hidden" />}
 
-        <main className="min-w-0 flex-1 px-5 py-5 sm:px-8 lg:px-12 lg:py-8">
+        <main className="min-w-0 flex-1 px-4 py-5 sm:px-8 lg:px-12 lg:py-8">
           <header className="mb-8 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button onClick={() => setShowMobileMenu(true)} className="rounded-xl p-2 hover:bg-[#ebe4d8] lg:hidden" aria-label="Buka menu"><Menu size={21} /></button>
@@ -196,8 +199,8 @@ export default function Home() {
                 <h1 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">Halo, {userName}<span className="text-[#e4694b]">.</span></h1>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <label className="hidden items-center gap-2 rounded-xl border border-[#1c2421]/10 bg-[#fbf8f3] px-3 py-2 text-[#8a938d] focus-within:border-[#e4694b] sm:flex"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari materi..." className="w-28 bg-transparent text-sm outline-none placeholder:text-[#a4aaa5]" /></label>
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-4">
+              <label className="hidden items-center gap-2 rounded-xl border border-[#1c2421]/10 bg-[#fbf8f3] px-3 py-2 text-[#8a938d] focus-within:border-[#e4694b] sm:flex"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari materi..." className="w-24 bg-transparent text-sm outline-none sm:w-36 placeholder:text-[#a4aaa5]" /></label>
               <button onClick={() => toggleTheme?.()} className="rounded-xl p-2.5 text-[#65716a] transition hover:bg-[#ebe4d8] hover:text-[#1c2421]" aria-label={theme === "dark" ? "Aktifkan mode terang" : "Aktifkan mode gelap"}>{theme === "dark" ? <Sun size={19} strokeWidth={1.8} /> : <Moon size={19} strokeWidth={1.8} />}</button><button onClick={() => toast("Belum ada notifikasi baru")} className="relative rounded-xl p-2.5 text-[#65716a] transition hover:bg-[#ebe4d8] hover:text-[#1c2421]" aria-label="Notifikasi"><Bell size={19} strokeWidth={1.8} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#e4694b]" /></button>
               <button onClick={() => logout()} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2421] font-display text-[10px] font-bold text-[#f6f1e8] transition hover:bg-[#e4694b]" aria-label="Keluar dari akun">{userName.slice(0, 2).toUpperCase()}</button>
             </div>
@@ -238,7 +241,7 @@ export default function Home() {
 
               <section>
                 <div className="mb-4 flex items-end justify-between"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">pilihan untukmu</p><h2 className="mt-1 font-display text-xl font-bold tracking-tight">Materi populer</h2></div><button onClick={() => setActiveNav("Materi belajar")} className="flex items-center gap-1 text-xs font-bold text-[#e4694b] transition hover:gap-2">Semua materi <ChevronRight size={15} /></button></div>
-                <div className="grid gap-3 sm:grid-cols-3">{filteredSubjects.map((subject) => <SubjectCard key={subject.name} subject={subject} onClick={() => navigate(`/materi/${encodeURIComponent(subject.name)}`)} />)}</div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{filteredSubjects.map((subject) => <SubjectCard key={subject.name} subject={subject} onClick={() => navigate(`/materi/${encodeURIComponent(subject.name)}`)} />)}</div>
                 {filteredSubjects.length === 0 && <div className="rounded-2xl border border-dashed border-[#1c2421]/15 p-8 text-center text-sm text-[#8a938d]">Materi tidak ditemukan. Coba kata kunci lain.</div>}
               </section>
             </div>
@@ -246,7 +249,7 @@ export default function Home() {
             <aside className="space-y-5">
               <div className="overflow-hidden rounded-2xl border border-[#1c2421]/10 bg-[#fbf8f3] shadow-[0_8px_24px_rgba(28,36,33,.04)]">
                 <div className="flex items-start justify-between p-5 pb-3"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">evaluasi cepat</p><h3 className="mt-1 font-display text-lg font-bold">Kuis hari ini</h3></div><span className="rounded-lg bg-[#f5dfd8] p-2 text-[#c8563d]"><Brain size={18} /></span></div>
-                <div className="px-5 pb-5"><p className="text-sm font-semibold leading-5">Seberapa paham kamu dengan fungsi kuadrat?</p><div className="mt-4 flex items-center gap-3 text-xs text-[#8a938d]"><span className="flex items-center gap-1"><CircleHelp size={14} /> 7 soal</span><span className="flex items-center gap-1"><Clock3 size={14} /> 8 menit</span></div><button onClick={() => navigate("/kuis")} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1c2421] py-3 text-sm font-bold text-[#f6f1e8] transition hover:bg-[#31443b] active:scale-[.98]"><Play size={15} fill="currentColor" /> Mulai kuis</button></div>
+                <div className="px-5 pb-5"><p className="text-sm font-semibold leading-5">Seberapa paham kamu dengan fungsi kuadrat?</p><div className="mt-4 flex items-center gap-3 text-xs text-[#8a938d]"><span className="flex items-center gap-1"><CircleHelp size={14} /> 12 soal</span><span className="flex items-center gap-1"><Clock3 size={14} /> 8 menit</span></div><button onClick={() => navigate("/kuis")} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1c2421] py-3 text-sm font-bold text-[#f6f1e8] transition hover:bg-[#31443b] active:scale-[.98]"><Play size={15} fill="currentColor" /> Mulai kuis</button></div>
               </div>
               <div className="relative overflow-hidden rounded-2xl bg-[#dce8d9] p-5"><img src={pathImage} alt="Ilustrasi jalur belajar" className="absolute -bottom-5 -right-8 h-32 w-32 object-cover opacity-60 mix-blend-multiply" /><div className="relative z-10"><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#52715b]">cara belajarmu</p><h3 className="mt-2 max-w-[160px] font-display text-xl font-bold leading-tight text-[#31483a]">Pelan, tapi konsisten.</h3><button onClick={() => handleAction("Tips belajar dibuka")} className="mt-4 flex items-center gap-1 text-xs font-bold text-[#52715b]">Baca tips <ArrowUpRight size={14} /></button></div></div>
               <div className="overflow-hidden rounded-2xl bg-[#f0dfc2]"><img src={deskImage} alt="Detail meja belajar" className="h-28 w-full object-cover mix-blend-multiply opacity-80" /><div className="flex items-center justify-between p-4"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#89683b]">mode fokus</p><p className="mt-1 text-sm font-bold text-[#5b452b]">25 menit tanpa distraksi</p></div><button onClick={() => setFocusMode(!focusMode)} className={`rounded-xl p-2.5 transition ${focusMode ? "bg-[#e4694b] text-white" : "bg-[#fbf8f3]/70 text-[#89683b] hover:bg-[#fbf8f3]"}`} aria-label="Aktifkan mode fokus"><TimerReset size={18} /></button></div></div>

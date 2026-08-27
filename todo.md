@@ -44,3 +44,18 @@
 - [x] Tampilkan pembahasan jawaban salah setelah kuis selesai.
 - [x] Tambahkan perhitungan daily streak dari aktivitas belajar tersimpan.
 - [x] Validasi tema, kuis, streak, test, dan simpan checkpoint.
+
+- [x] Audit katalog materi, bank soal, dan alur login/progres.
+- [x] Tambahkan materi dan soal baru yang relevan untuk pelajar SMK.
+- [x] Perbaiki tampilan dan responsivitas pada halaman utama serta halaman fitur.
+- [x] Uji login, penyimpanan progres, navigasi, dan pemulihan saat reload.
+- [x] Simpan checkpoint pengembangan terbaru.
+
+- [x] Lakukan perbaikan UI/responsivitas nyata pada dashboard dan halaman fitur.
+- [x] Uji alur login, navigasi, penyimpanan progres, reload, logout, dan login kembali.
+- [x] Simpan checkpoint baru setelah perbaikan dan pengujian final.
+
+- [x] Tambahkan pengujian autentikasi dan progres yang mencakup sesi pengguna, akses terlindungi, serta logout.
+- [x] Simpan checkpoint setelah perubahan konten dan UI terbaru.
+
+- [x] Simpan checkpoint final setelah perubahan konten, UI, dan test autentikasi terbaru.
