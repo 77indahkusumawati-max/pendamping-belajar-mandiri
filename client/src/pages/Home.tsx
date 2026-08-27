@@ -116,13 +116,13 @@ export default function Home() {
               <button onClick={() => setShowMobileMenu(true)} className="rounded-xl p-2 hover:bg-[#ebe4d8] lg:hidden" aria-label="Buka menu"><Menu size={21} /></button>
               <div>
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a938d]">Rabu, 26 Agustus 2026</p>
-                <h1 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">Halo, Raka<span className="text-[#e4694b]">.</span></h1>
+                <h1 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">Halo, teman belajar<span className="text-[#e4694b]">.</span></h1>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <label className="hidden items-center gap-2 rounded-xl border border-[#1c2421]/10 bg-[#fbf8f3] px-3 py-2 text-[#8a938d] focus-within:border-[#e4694b] sm:flex"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari materi..." className="w-28 bg-transparent text-sm outline-none placeholder:text-[#a4aaa5]" /></label>
               <button onClick={() => toast("Belum ada notifikasi baru")} className="relative rounded-xl p-2.5 text-[#65716a] transition hover:bg-[#ebe4d8] hover:text-[#1c2421]" aria-label="Notifikasi"><Bell size={19} strokeWidth={1.8} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#e4694b]" /></button>
-              <button onClick={() => handleAction("Profil Raka")} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2421] font-display text-sm font-bold text-[#f6f1e8] transition hover:bg-[#e4694b]" aria-label="Buka profil">R</button>
+              <button onClick={() => handleAction("Profil pengguna")} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2421] font-display text-sm font-bold text-[#f6f1e8] transition hover:bg-[#e4694b]" aria-label="Buka profil">TB</button>
             </div>
           </header>
 
