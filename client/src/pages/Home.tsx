@@ -25,6 +25,7 @@ import {
   Target,
   TimerReset,
   Trophy,
+  UserRound,
   X,
 } from "lucide-react";
 
@@ -150,10 +151,11 @@ export default function Home() {
                 ["Rencana saya", CalendarDays],
                 ["Progres", Trophy],
                 ["Leaderboard", Trophy],
+                ["Profil", UserRound],
               ].map(([label, Icon]) => (
                 <button
                   key={label as string}
-                  onClick={() => { setActiveNav(label as string); setShowMobileMenu(false); if (label === "Progres") navigate("/progres"); if (label === "Leaderboard") navigate("/leaderboard"); if (label === "Materi belajar") navigate("/materi/Matematika"); }}
+                  onClick={() => { setActiveNav(label as string); setShowMobileMenu(false); if (label === "Progres") navigate("/progres"); if (label === "Leaderboard") navigate("/leaderboard"); if (label === "Profil") navigate("/profil"); if (label === "Materi belajar") navigate("/materi/Matematika"); }}
                   className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition duration-200 active:scale-[.98] ${activeNav === label ? "bg-[#1c2421] text-[#f6f1e8] shadow-[0_8px_20px_rgba(28,36,33,.12)]" : "text-[#65716a] hover:bg-[#ebe4d8] hover:text-[#1c2421]"}`}
                 >
                   <Icon size={17} strokeWidth={1.8} />
@@ -203,7 +205,6 @@ export default function Home() {
             </div>
             <div className="absolute bottom-5 right-6 hidden text-right sm:block"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8da092]">sesi aktif</p><p className="mt-1 font-display text-2xl font-bold text-[#fbf8f3]">{todayMinutes} <span className="text-sm font-medium text-[#aab8af]">menit</span></p></div>
           </section>
-          <div className="mb-8 flex items-start gap-3 rounded-2xl border border-[#e4694b]/15 bg-[#f8e9e2] p-4 text-sm leading-6 text-[#8f4b3b]"><Sparkles size={17} className="mt-1 shrink-0" /><p><strong className="font-display">Dirancang dari suara pengguna.</strong> Empathy Map dan User Persona di aplikasi ini merupakan gambaran umum dari pola jawaban 26 responden, bukan gambaran satu individu tertentu.</p></div>
           <section className={`mb-8 flex flex-col justify-between gap-4 rounded-2xl border p-4 sm:flex-row sm:items-center ${reminderDue ? "border-[#e4694b]/25 bg-[#f8e9e2]" : "border-[#1c2421]/10 bg-[#fbf8f3]"}`}><div className="flex items-start gap-3"><Bell size={18} className={reminderDue ? "mt-1 text-[#e4694b]" : "mt-1 text-[#6e9978]"} /><div><p className="text-sm font-bold">{reminderDue ? "Target belajarmu masih menunggu." : reminderEnabled ? "Pengingat harian aktif." : "Atur pengingat harian."}</p><p className="mt-1 text-xs leading-5 text-[#65716a]">{reminderDue ? `Pengingat aplikasi dijadwalkan pukul ${reminderTime}.` : reminderEnabled ? `Jadwal pengingat: ${reminderTime}.` : "Pilih waktu agar target belajar tidak terlupakan."}</p></div></div><div className="flex items-center gap-2"><input aria-label="Waktu pengingat harian" type="time" value={reminderTime} onChange={(event) => setReminderTime(event.target.value)} className="rounded-lg border border-[#1c2421]/10 bg-[#fbf8f3] px-2 py-2 text-xs font-bold" /><button onClick={toggleReminder} className={`rounded-lg px-3 py-2 text-xs font-bold ${reminderEnabled ? "bg-[#1c2421] text-[#f6f1e8]" : "bg-[#e4694b] text-white"}`}>{reminderEnabled ? "Matikan" : "Aktifkan"}</button></div></section>
 
           <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">

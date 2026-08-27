@@ -33,3 +33,9 @@
 - [x] Tambahkan pengaturan serta pengingat target belajar harian.
 - [x] Tambahkan lencana dan unduhan sertifikat setelah kuis sempurna.
 - [x] Uji seluruh alur fitur baru dan simpan checkpoint.
+
+- [x] Hapus catatan sintesis 26 responden dari dashboard aplikasi.
+- [x] Buat halaman profil dengan koleksi lencana dan sertifikat.
+- [x] Tambahkan fitur berbagi sertifikat dan peringkat leaderboard.
+- [x] Tambahkan animasi serta efek suara saat pencapaian.
+- [x] Uji seluruh alur dan simpan checkpoint baru.
