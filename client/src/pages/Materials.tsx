@@ -1,11 +1,16 @@
 // Signal & Focus: halaman materi editorial dengan langkah belajar yang dapat diikuti.
 import { ArrowLeft, ArrowUpRight, BookOpen, CheckCircle2, Clock3, FileText, Lightbulb, PlayCircle } from "lucide-react";
 import { Link, useLocation, useRoute } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 const content: Record<string, { title: string; subject: string; summary: string; steps: string[]; source: string }> = {
   Matematika: { title: "Fungsi Kuadrat", subject: "Matematika", summary: "Memahami bentuk, grafik, dan titik penting pada fungsi kuadrat secara bertahap.", steps: ["Kenali bentuk umum f(x) = ax² + bx + c dan peran setiap koefisien.", "Temukan titik puncak dan sumbu simetri untuk membaca bentuk grafik.", "Gunakan diskriminan untuk memprediksi perpotongan grafik dengan sumbu-x."], source: "Modul Matematika SMA · Bab Fungsi" },
   "Bahasa Indonesia": { title: "Menemukan Gagasan Utama", subject: "Bahasa Indonesia", summary: "Latihan menemukan ide utama dan hubungan antargagasan dalam sebuah paragraf.", steps: ["Baca paragraf secara utuh tanpa langsung mencari kata kunci.", "Tandai kalimat yang menjadi inti pembahasan.", "Uji kembali gagasan utama dengan merangkum paragraf dalam satu kalimat."], source: "Modul Bahasa Indonesia · Membaca Efektif" },
   "Produktif RPL": { title: "HTML Dasar", subject: "Produktif RPL", summary: "Mengenal struktur halaman HTML dan cara menyusun elemen secara semantik.", steps: ["Mulai dari struktur dokumen: doctype, html, head, dan body.", "Gunakan heading, paragraf, tautan, dan gambar sesuai tujuan konten.", "Periksa kembali nesting dan atribut agar halaman mudah dibaca browser."], source: "Modul Produktif RPL · Web Dasar" },
+  Informatika: { title: "Algoritma dan Pseudocode", subject: "Informatika", summary: "Menyusun langkah penyelesaian masalah sebelum diterjemahkan ke dalam kode program.", steps: ["Uraikan masalah menjadi input, proses, dan output.", "Tulis langkah solusi menggunakan bahasa yang terstruktur dan mudah dibaca.", "Uji pseudocode dengan contoh sederhana sebelum masuk ke tahap implementasi."], source: "Modul Informatika SMK · Algoritma Dasar" },
+  "Bahasa Inggris": { title: "Reading for Main Ideas", subject: "Bahasa Inggris", summary: "Menemukan gagasan utama dan informasi pendukung dalam teks pendek.", steps: ["Baca judul dan kalimat pembuka untuk memperkirakan topik.", "Cari detail yang menjelaskan atau mendukung gagasan utama.", "Tuliskan kembali inti bacaan menggunakan kalimat sederhana."], source: "Modul Bahasa Inggris SMK · Reading" },
+  "Pendidikan Pancasila": { title: "Nilai Pancasila dalam Kehidupan", subject: "Pendidikan Pancasila", summary: "Menghubungkan nilai setiap sila dengan contoh perilaku di lingkungan sekolah.", steps: ["Identifikasi nilai utama dari sila yang sedang dipelajari.", "Hubungkan nilai tersebut dengan situasi nyata di sekolah.", "Jelaskan alasan tindakan tersebut mencerminkan nilai Pancasila."], source: "Modul Pendidikan Pancasila · Nilai dan Praktik" },
 };
 
 export default function Materials() {
@@ -13,9 +18,19 @@ export default function Materials() {
   const [, navigate] = useLocation();
   const subject = decodeURIComponent(params?.subject ?? "Matematika");
   const item = content[subject] ?? content.Matematika;
-  const doneKey = `temanbelajar_done_${item.subject}`;
-  const isDone = localStorage.getItem(doneKey) === "true";
-  const markDone = () => { localStorage.setItem(doneKey, "true"); navigate(`/materi/${encodeURIComponent(item.subject)}`); };
+  const progressQuery = trpc.progress.get.useQuery(undefined, { retry: false });
+  const utils = trpc.useUtils();
+  const saveProgress = trpc.progress.save.useMutation({
+    onSuccess: () => { toast.success("Materi tersimpan sebagai selesai"); utils.progress.get.invalidate(); },
+    onError: () => toast.error("Materi belum tersimpan", { description: "Periksa koneksi lalu coba lagi." }),
+  });
+  const completedMaterials = progressQuery.data?.completedMaterials ?? [];
+  const isDone = completedMaterials.includes(item.subject);
+  const markDone = () => {
+    const nextMaterials = Array.from(new Set([...completedMaterials, item.subject]));
+    saveProgress.mutate({ tasks: progressQuery.data?.tasks ?? [], completedMaterials: nextMaterials, weeklyActivity: progressQuery.data?.weeklyActivity ?? {}, dailyTargetMinutes: progressQuery.data?.dailyTargetMinutes ?? 30 });
+    navigate(`/materi/${encodeURIComponent(item.subject)}`);
+  };
 
   return <main className="min-h-screen bg-[#f6f1e8] px-5 py-6 text-[#1c2421] sm:px-8 lg:px-12 lg:py-8"><div className="mx-auto max-w-5xl"><Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-[#65716a] transition hover:text-[#e4694b]"><ArrowLeft size={16} /> Kembali ke ringkasan</Link><div className="mt-10 grid gap-10 lg:grid-cols-[1fr_300px]"><article><div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[.2em] text-[#e4694b]"><span className="h-2 w-2 rounded-full bg-[#e4694b]" /> {item.subject}</div><h1 className="mt-4 max-w-2xl font-display text-4xl font-bold leading-[1.05] tracking-[-.04em] sm:text-5xl">{item.title}</h1><p className="mt-5 max-w-2xl text-base leading-7 text-[#65716a]">{item.summary}</p><div className="mt-7 flex flex-wrap items-center gap-4 text-xs font-semibold text-[#8a938d]"><span className="flex items-center gap-1.5"><Clock3 size={15} /> 18 menit</span><span className="flex items-center gap-1.5"><FileText size={15} /> 3 langkah</span>{isDone && <span className="flex items-center gap-1.5 text-[#6e9978]"><CheckCircle2 size={15} /> Selesai</span>}</div><div className="mt-10 space-y-4">{item.steps.map((step, index) => <section key={step} className="relative rounded-2xl border border-[#1c2421]/10 bg-[#fbf8f3] p-5 pl-16 shadow-[0_8px_24px_rgba(28,36,33,.04)]"><span className="absolute left-5 top-5 flex h-7 w-7 items-center justify-center rounded-full bg-[#dce8d9] font-mono text-xs font-bold text-[#52715b]">0{index + 1}</span><h2 className="font-display text-lg font-bold">Langkah {index + 1}</h2><p className="mt-2 text-sm leading-6 text-[#65716a]">{step}</p></section>)}</div><div className="mt-8 flex flex-wrap gap-3"><button onClick={markDone} className="inline-flex items-center gap-2 rounded-xl bg-[#1c2421] px-4 py-3 text-sm font-bold text-[#f6f1e8] transition hover:bg-[#31443b] active:scale-[.98]"><CheckCircle2 size={16} /> {isDone ? "Materi sudah selesai" : "Tandai selesai"}</button><Link href="/kuis" className="inline-flex items-center gap-2 rounded-xl bg-[#e4694b] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#ef795b] active:scale-[.98]"><PlayCircle size={16} /> Coba kuis</Link></div></article><aside className="space-y-5"><div className="rounded-2xl bg-[#dce8d9] p-5"><Lightbulb size={20} className="text-[#52715b]" /><h2 className="mt-4 font-display text-xl font-bold text-[#31483a]">Catatan kecil</h2><p className="mt-2 text-sm leading-6 text-[#52715b]">Jangan berhenti di membaca. Setelah memahami konsep, coba jelaskan kembali dengan kata-katamu sendiri.</p></div><div className="overflow-hidden rounded-2xl border border-[#1c2421]/10 bg-[#fbf8f3]"><div className="flex h-28 items-center justify-center bg-[#f0dfc2] text-[#89683b]"><BookOpen size={38} strokeWidth={1.4} /></div><div className="p-5"><p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-[#8a938d]">sumber materi</p><p className="mt-2 text-sm font-bold">{item.source}</p><button onClick={() => alert("Sumber akan dibuka pada versi berikutnya.")} className="mt-4 flex items-center gap-1 text-xs font-bold text-[#e4694b]">Lihat sumber <ArrowUpRight size={14} /></button></div></div></aside></div></div></main>;
 }

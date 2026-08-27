@@ -1,0 +1,1 @@
+ALTER TABLE `studyProgress` ADD `weeklyActivity` text DEFAULT ('{}') NOT NULL;

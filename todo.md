@@ -10,3 +10,21 @@
 - [x] Buat halaman kuis dengan alur soal, jawaban, dan hasil.
 - [x] Uji navigasi dashboard-materi-kuis serta reload persistence.
 - [x] Simpan checkpoint fitur baru.
+
+- [x] Upgrade proyek untuk autentikasi server dan penyimpanan lintas perangkat.
+- [x] Tambahkan materi kurikulum dan bank soal yang lebih lengkap.
+- [x] Buat halaman progres detail dengan grafik perkembangan.
+- [x] Tambahkan keterangan bahwa Empathy Map dan User Persona adalah sintesis 26 responden.
+- [x] Validasi seluruh alur dan simpan checkpoint pengembangan.
+
+- [x] Jadikan server sebagai sumber utama progres dan cegah completedMaterials tertimpa array kosong.
+- [x] Tambahkan penanganan error mutation dan guard autentikasi pada halaman terlindungi.
+- [x] Selaraskan katalog materi dan bank soal dengan jumlah konten yang benar-benar tersedia.
+- [x] Hitung ringkasan dan grafik progres dari data tersimpan, bukan nilai statis.
+- [x] Simpan checkpoint baru setelah validasi authenticated flow selesai.
+
+- [x] Hilangkan fallback progres localStorage dan gunakan server sebagai sumber utama.
+- [x] Tambahkan feedback sukses/gagal pada penyimpanan progres dan submit kuis.
+- [x] Samakan label jumlah soal dashboard dengan bank soal.
+- [x] Ganti metrik dashboard statis dengan perhitungan dari data server.
+- [x] Buat checkpoint final setelah validasi terakhir.

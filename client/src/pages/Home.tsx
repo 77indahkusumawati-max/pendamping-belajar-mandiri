@@ -1,4 +1,6 @@
 // Signal & Focus: editorial dashboard untuk belajar mandiri—jelas, suportif, terarah.
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -32,9 +34,12 @@ const deskImage = "/manus-storage/focus-desk-detail_e7b2fed8.png";
 const markImage = "/manus-storage/temanbelajar-mark_2a158bc4.png";
 
 const subjects = [
-  { name: "Matematika", count: "12 materi", color: "coral", symbol: "∑" },
-  { name: "Bahasa Indonesia", count: "8 materi", color: "sage", symbol: "Aa" },
-  { name: "Produktif RPL", count: "16 materi", color: "ochre", symbol: "</>" },
+  { name: "Matematika", count: "1 materi", color: "coral", symbol: "∑" },
+  { name: "Bahasa Indonesia", count: "1 materi", color: "sage", symbol: "Aa" },
+  { name: "Produktif RPL", count: "1 materi", color: "ochre", symbol: "</>" },
+  { name: "Informatika", count: "1 materi", color: "sage", symbol: "{}" },
+  { name: "Bahasa Inggris", count: "1 materi", color: "ochre", symbol: "Ab" },
+  { name: "Pendidikan Pancasila", count: "1 materi", color: "coral", symbol: "P" },
 ];
 
 type Task = { id: number; title: string; meta: string; done: boolean };
@@ -46,20 +51,49 @@ const initialTasks: Task[] = [
 ];
 
 export default function Home() {
+  // The useAuth hook provides authentication state.
+  // To implement login/logout, call logout(), or start login from an event
+  // handler: onClick={() => startLogin()} (imported from "@/const"). Never call
+  // startLogin() during render (no href={startLogin()}) — it mints a one-time
+  // nonce cookie and must run only at the moment of navigation.
+  let { user, loading, error, isAuthenticated, logout } = useAuth();
+
   const [, navigate] = useLocation();
   const [activeNav, setActiveNav] = useState("Ringkasan");
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem("temanbelajar_tasks");
-    return saved ? JSON.parse(saved) : initialTasks;
+  const progressQuery = trpc.progress.get.useQuery(undefined, { retry: false });
+  const utils = trpc.useUtils();
+  const saveProgress = trpc.progress.save.useMutation({
+    onSuccess: () => { toast.success("Progres tersimpan"); utils.progress.get.invalidate(); },
+    onError: () => toast.error("Progres belum tersimpan", { description: "Periksa koneksi lalu coba lagi." }),
   });
-  const userName = localStorage.getItem("temanbelajar_user") || "teman belajar";
-  useEffect(() => { localStorage.setItem("temanbelajar_tasks", JSON.stringify(tasks)); }, [tasks]);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [completedMaterials, setCompletedMaterials] = useState<string[]>([]);
+  const [weeklyActivity, setWeeklyActivity] = useState<Record<string, number>>({});
+  const [progressHydrated, setProgressHydrated] = useState(false);
+  const userName = user?.name || "teman belajar";
+  useEffect(() => {
+    if (progressQuery.isSuccess && !progressHydrated) {
+      if (progressQuery.data.tasks) setTasks(progressQuery.data.tasks);
+      setCompletedMaterials(progressQuery.data.completedMaterials);
+      setWeeklyActivity(progressQuery.data.weeklyActivity);
+      setProgressHydrated(true);
+    }
+  }, [progressQuery.data, progressQuery.isError, progressQuery.isSuccess, progressHydrated]);
+  useEffect(() => {
+    if (!progressHydrated) return;
+    saveProgress.mutate({ tasks, completedMaterials, weeklyActivity, dailyTargetMinutes: 30 });
+  }, [tasks, completedMaterials, weeklyActivity, progressHydrated]);
   const [query, setQuery] = useState("");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
 
   const completed = tasks.filter((task) => task.done).length;
-  const progress = Math.round((completed / tasks.length) * 100);
+  const progress = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+  const weekDays = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+  const weeklyMinutes = weekDays.reduce((sum, day) => sum + (weeklyActivity[day] ?? 0), 0);
+  const activeDays = weekDays.filter((day) => (weeklyActivity[day] ?? 0) > 0).length;
+  const today = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"][new Date().getDay()];
+  const todayMinutes = weeklyActivity[today] ?? 0;
   const filteredSubjects = useMemo(
     () => subjects.filter((subject) => subject.name.toLowerCase().includes(query.toLowerCase())),
     [query],
@@ -67,10 +101,15 @@ export default function Home() {
 
   const toggleTask = (id: number) => {
     setTasks((current: Task[]) => current.map((task: Task) => (task.id === id ? { ...task, done: !task.done } : task)));
-    toast.success("Progres belajar diperbarui", { description: "Langkahmu tersimpan di sesi hari ini." });
+    const dayKeys = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+    const today = dayKeys[new Date().getDay()];
+    setWeeklyActivity((current) => ({ ...current, [today]: (current[today] ?? 0) + 15 }));
+    toast("Menyimpan progres belajar...");
   };
 
   const handleAction = (message: string) => toast(message, { description: "Fitur ini siap dipakai pada prototipe berikutnya." });
+
+  if (progressQuery.isError) return <main className="flex min-h-screen items-center justify-center bg-[#f6f1e8] px-5 text-center"><div className="max-w-md rounded-2xl border border-[#e4694b]/20 bg-[#fbf8f3] p-8"><h1 className="font-display text-2xl font-bold">Progres belum dapat dimuat</h1><p className="mt-3 text-sm leading-6 text-[#65716a]">Data tidak akan ditimpa dengan data kosong. Periksa koneksi lalu muat ulang halaman.</p><button onClick={() => progressQuery.refetch()} className="mt-6 rounded-xl bg-[#1c2421] px-4 py-3 text-sm font-bold text-[#f6f1e8]">Coba lagi</button></div></main>;
 
   return (
     <div className="min-h-screen bg-[#f6f1e8] text-[#1c2421] selection:bg-[#e4694b]/20">
@@ -95,7 +134,7 @@ export default function Home() {
               ].map(([label, Icon]) => (
                 <button
                   key={label as string}
-                  onClick={() => { setActiveNav(label as string); setShowMobileMenu(false); }}
+                  onClick={() => { setActiveNav(label as string); setShowMobileMenu(false); if (label === "Progres") navigate("/progres"); if (label === "Materi belajar") navigate("/materi/Matematika"); }}
                   className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition duration-200 active:scale-[.98] ${activeNav === label ? "bg-[#1c2421] text-[#f6f1e8] shadow-[0_8px_20px_rgba(28,36,33,.12)]" : "text-[#65716a] hover:bg-[#ebe4d8] hover:text-[#1c2421]"}`}
                 >
                   <Icon size={17} strokeWidth={1.8} />
@@ -131,7 +170,7 @@ export default function Home() {
             <div className="flex items-center gap-2 sm:gap-4">
               <label className="hidden items-center gap-2 rounded-xl border border-[#1c2421]/10 bg-[#fbf8f3] px-3 py-2 text-[#8a938d] focus-within:border-[#e4694b] sm:flex"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari materi..." className="w-28 bg-transparent text-sm outline-none placeholder:text-[#a4aaa5]" /></label>
               <button onClick={() => toast("Belum ada notifikasi baru")} className="relative rounded-xl p-2.5 text-[#65716a] transition hover:bg-[#ebe4d8] hover:text-[#1c2421]" aria-label="Notifikasi"><Bell size={19} strokeWidth={1.8} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#e4694b]" /></button>
-              <button onClick={() => handleAction("Profil pengguna")} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2421] font-display text-sm font-bold text-[#f6f1e8] transition hover:bg-[#e4694b]" aria-label="Buka profil">TB</button>
+              <button onClick={() => logout()} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2421] font-display text-[10px] font-bold text-[#f6f1e8] transition hover:bg-[#e4694b]" aria-label="Keluar dari akun">{userName.slice(0, 2).toUpperCase()}</button>
             </div>
           </header>
 
@@ -143,16 +182,17 @@ export default function Home() {
               <p className="mt-4 max-w-md text-sm leading-6 text-[#c4cec7]">Selesaikan satu langkah kecil hari ini. Kamu sedang membangun ritme yang akan membantu memahami lebih banyak.</p>
               <button onClick={() => navigate("/materi/Matematika")} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#e4694b] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_20px_rgba(228,105,75,.22)] transition hover:-translate-y-0.5 hover:bg-[#ef795b] active:scale-[.98]">Lanjutkan belajar <ArrowUpRight size={16} /></button>
             </div>
-            <div className="absolute bottom-5 right-6 hidden text-right sm:block"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8da092]">sesi aktif</p><p className="mt-1 font-display text-2xl font-bold text-[#fbf8f3]">18 <span className="text-sm font-medium text-[#aab8af]">menit</span></p></div>
+            <div className="absolute bottom-5 right-6 hidden text-right sm:block"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8da092]">sesi aktif</p><p className="mt-1 font-display text-2xl font-bold text-[#fbf8f3]">{todayMinutes} <span className="text-sm font-medium text-[#aab8af]">menit</span></p></div>
           </section>
+          <div className="mb-8 flex items-start gap-3 rounded-2xl border border-[#e4694b]/15 bg-[#f8e9e2] p-4 text-sm leading-6 text-[#8f4b3b]"><Sparkles size={17} className="mt-1 shrink-0" /><p><strong className="font-display">Dirancang dari suara pengguna.</strong> Empathy Map dan User Persona di aplikasi ini merupakan gambaran umum dari pola jawaban 26 responden, bukan gambaran satu individu tertentu.</p></div>
 
           <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
             <div className="min-w-0">
               <section className="mb-8">
-                <div className="mb-4 flex items-end justify-between"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">ritme kamu</p><h2 className="mt-1 font-display text-xl font-bold tracking-tight">Ringkasan progres</h2></div><button onClick={() => setActiveNav("Progres")} className="flex items-center gap-1 text-xs font-bold text-[#e4694b] transition hover:gap-2">Lihat detail <ChevronRight size={15} /></button></div>
+                <div className="mb-4 flex items-end justify-between"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">ritme kamu</p><h2 className="mt-1 font-display text-xl font-bold tracking-tight">Ringkasan progres</h2></div><button onClick={() => navigate("/progres")} className="flex items-center gap-1 text-xs font-bold text-[#e4694b] transition hover:gap-2">Lihat detail <ChevronRight size={15} /></button></div>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <StatCard icon={Flame} label="Streak belajar" value="4 hari" detail="Pertahankan ritmemu" accent="coral" />
-                  <StatCard icon={Clock3} label="Waktu minggu ini" value="2j 45m" detail="+32% dari minggu lalu" accent="sage" />
+                  <StatCard icon={Flame} label="Hari aktif" value={`${activeDays} hari`} detail={activeDays ? "Pertahankan ritmemu" : "Mulai satu langkah"} accent="coral" />
+                  <StatCard icon={Clock3} label="Waktu minggu ini" value={`${Math.floor(weeklyMinutes / 60)}j ${weeklyMinutes % 60}m`} detail={weeklyMinutes ? `${weeklyMinutes} menit tercatat` : "Belum ada aktivitas"} accent="sage" />
                   <StatCard icon={Target} label="Target tercapai" value={`${progress}%`} detail={`${completed} dari ${tasks.length} langkah`} accent="ochre" />
                 </div>
               </section>
@@ -177,7 +217,7 @@ export default function Home() {
             <aside className="space-y-5">
               <div className="overflow-hidden rounded-2xl border border-[#1c2421]/10 bg-[#fbf8f3] shadow-[0_8px_24px_rgba(28,36,33,.04)]">
                 <div className="flex items-start justify-between p-5 pb-3"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">evaluasi cepat</p><h3 className="mt-1 font-display text-lg font-bold">Kuis hari ini</h3></div><span className="rounded-lg bg-[#f5dfd8] p-2 text-[#c8563d]"><Brain size={18} /></span></div>
-                <div className="px-5 pb-5"><p className="text-sm font-semibold leading-5">Seberapa paham kamu dengan fungsi kuadrat?</p><div className="mt-4 flex items-center gap-3 text-xs text-[#8a938d]"><span className="flex items-center gap-1"><CircleHelp size={14} /> 5 soal</span><span className="flex items-center gap-1"><Clock3 size={14} /> 8 menit</span></div><button onClick={() => navigate("/kuis")} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1c2421] py-3 text-sm font-bold text-[#f6f1e8] transition hover:bg-[#31443b] active:scale-[.98]"><Play size={15} fill="currentColor" /> Mulai kuis</button></div>
+                <div className="px-5 pb-5"><p className="text-sm font-semibold leading-5">Seberapa paham kamu dengan fungsi kuadrat?</p><div className="mt-4 flex items-center gap-3 text-xs text-[#8a938d]"><span className="flex items-center gap-1"><CircleHelp size={14} /> 7 soal</span><span className="flex items-center gap-1"><Clock3 size={14} /> 8 menit</span></div><button onClick={() => navigate("/kuis")} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1c2421] py-3 text-sm font-bold text-[#f6f1e8] transition hover:bg-[#31443b] active:scale-[.98]"><Play size={15} fill="currentColor" /> Mulai kuis</button></div>
               </div>
               <div className="relative overflow-hidden rounded-2xl bg-[#dce8d9] p-5"><img src={pathImage} alt="Ilustrasi jalur belajar" className="absolute -bottom-5 -right-8 h-32 w-32 object-cover opacity-60 mix-blend-multiply" /><div className="relative z-10"><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#52715b]">cara belajarmu</p><h3 className="mt-2 max-w-[160px] font-display text-xl font-bold leading-tight text-[#31483a]">Pelan, tapi konsisten.</h3><button onClick={() => handleAction("Tips belajar dibuka")} className="mt-4 flex items-center gap-1 text-xs font-bold text-[#52715b]">Baca tips <ArrowUpRight size={14} /></button></div></div>
               <div className="overflow-hidden rounded-2xl bg-[#f0dfc2]"><img src={deskImage} alt="Detail meja belajar" className="h-28 w-full object-cover mix-blend-multiply opacity-80" /><div className="flex items-center justify-between p-4"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#89683b]">mode fokus</p><p className="mt-1 text-sm font-bold text-[#5b452b]">25 menit tanpa distraksi</p></div><button onClick={() => setFocusMode(!focusMode)} className={`rounded-xl p-2.5 transition ${focusMode ? "bg-[#e4694b] text-white" : "bg-[#fbf8f3]/70 text-[#89683b] hover:bg-[#fbf8f3]"}`} aria-label="Aktifkan mode fokus"><TimerReset size={18} /></button></div></div>
