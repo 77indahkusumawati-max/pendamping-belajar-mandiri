@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   ArrowUpRight,
   Bell,
@@ -17,11 +18,13 @@ import {
   Flame,
   LayoutDashboard,
   Menu,
+  Moon,
   MoreHorizontal,
   Play,
   Plus,
   Search,
   Sparkles,
+  Sun,
   Target,
   TimerReset,
   Trophy,
@@ -52,6 +55,7 @@ const initialTasks: Task[] = [
 ];
 
 export default function Home() {
+  const { theme, toggleTheme } = useTheme();
   // The useAuth hook provides authentication state.
   // To implement login/logout, call logout(), or start login from an event
   // handler: onClick={() => startLogin()} (imported from "@/const"). Never call
@@ -70,6 +74,7 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [completedMaterials, setCompletedMaterials] = useState<string[]>([]);
   const [weeklyActivity, setWeeklyActivity] = useState<Record<string, number>>({});
+  const [activityDates, setActivityDates] = useState<string[]>([]);
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState("19:00");
   const [progressHydrated, setProgressHydrated] = useState(false);
@@ -79,6 +84,7 @@ export default function Home() {
       if (progressQuery.data.tasks) setTasks(progressQuery.data.tasks);
       setCompletedMaterials(progressQuery.data.completedMaterials);
       setWeeklyActivity(progressQuery.data.weeklyActivity);
+      setActivityDates(progressQuery.data.activityDates ?? []);
       setReminderEnabled(Boolean(progressQuery.data.reminderEnabled));
       setReminderTime(progressQuery.data.reminderTime);
       setProgressHydrated(true);
@@ -86,8 +92,8 @@ export default function Home() {
   }, [progressQuery.data, progressQuery.isError, progressQuery.isSuccess, progressHydrated]);
   useEffect(() => {
     if (!progressHydrated) return;
-    saveProgress.mutate({ tasks, completedMaterials, weeklyActivity, dailyTargetMinutes: 30, reminderEnabled: reminderEnabled ? 1 : 0, reminderTime });
-  }, [tasks, completedMaterials, weeklyActivity, reminderEnabled, reminderTime, progressHydrated]);
+    saveProgress.mutate({ tasks, completedMaterials, weeklyActivity, activityDates, dailyTargetMinutes: 30, reminderEnabled: reminderEnabled ? 1 : 0, reminderTime });
+  }, [tasks, completedMaterials, weeklyActivity, activityDates, reminderEnabled, reminderTime, progressHydrated]);
   const [query, setQuery] = useState("");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
@@ -100,6 +106,8 @@ export default function Home() {
   const today = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"][new Date().getDay()];
   const todayMinutes = weeklyActivity[today] ?? 0;
   const reminderDue = reminderEnabled && todayMinutes < 30 && new Date().toTimeString().slice(0, 5) >= reminderTime;
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const dailyStreak = (() => { let count = 0; const cursor = new Date(); while (activityDates.includes(cursor.toISOString().slice(0, 10))) { count += 1; cursor.setUTCDate(cursor.getUTCDate() - 1); } return count; })();
   useEffect(() => {
     if (!reminderDue || typeof window === "undefined" || !("Notification" in window)) return;
     const sentKey = `temanbelajar_reminder_${new Date().toISOString().slice(0, 10)}`;
@@ -118,7 +126,7 @@ export default function Home() {
     setTasks((current: Task[]) => current.map((task: Task) => (task.id === id ? { ...task, done: !task.done } : task)));
     const dayKeys = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
     const today = dayKeys[new Date().getDay()];
-    setWeeklyActivity((current) => ({ ...current, [today]: (current[today] ?? 0) + 15 }));
+    setWeeklyActivity((current) => ({ ...current, [today]: (current[today] ?? 0) + 15 })); setActivityDates((current) => Array.from(new Set([...current, todayKey])));
     toast("Menyimpan progres belajar...");
   };
 
@@ -190,7 +198,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <label className="hidden items-center gap-2 rounded-xl border border-[#1c2421]/10 bg-[#fbf8f3] px-3 py-2 text-[#8a938d] focus-within:border-[#e4694b] sm:flex"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari materi..." className="w-28 bg-transparent text-sm outline-none placeholder:text-[#a4aaa5]" /></label>
-              <button onClick={() => toast("Belum ada notifikasi baru")} className="relative rounded-xl p-2.5 text-[#65716a] transition hover:bg-[#ebe4d8] hover:text-[#1c2421]" aria-label="Notifikasi"><Bell size={19} strokeWidth={1.8} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#e4694b]" /></button>
+              <button onClick={() => toggleTheme?.()} className="rounded-xl p-2.5 text-[#65716a] transition hover:bg-[#ebe4d8] hover:text-[#1c2421]" aria-label={theme === "dark" ? "Aktifkan mode terang" : "Aktifkan mode gelap"}>{theme === "dark" ? <Sun size={19} strokeWidth={1.8} /> : <Moon size={19} strokeWidth={1.8} />}</button><button onClick={() => toast("Belum ada notifikasi baru")} className="relative rounded-xl p-2.5 text-[#65716a] transition hover:bg-[#ebe4d8] hover:text-[#1c2421]" aria-label="Notifikasi"><Bell size={19} strokeWidth={1.8} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#e4694b]" /></button>
               <button onClick={() => logout()} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2421] font-display text-[10px] font-bold text-[#f6f1e8] transition hover:bg-[#e4694b]" aria-label="Keluar dari akun">{userName.slice(0, 2).toUpperCase()}</button>
             </div>
           </header>
@@ -212,7 +220,7 @@ export default function Home() {
               <section className="mb-8">
                 <div className="mb-4 flex items-end justify-between"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a938d]">ritme kamu</p><h2 className="mt-1 font-display text-xl font-bold tracking-tight">Ringkasan progres</h2></div><button onClick={() => navigate("/progres")} className="flex items-center gap-1 text-xs font-bold text-[#e4694b] transition hover:gap-2">Lihat detail <ChevronRight size={15} /></button></div>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <StatCard icon={Flame} label="Hari aktif" value={`${activeDays} hari`} detail={activeDays ? "Pertahankan ritmemu" : "Mulai satu langkah"} accent="coral" />
+                  <StatCard icon={Flame} label="Daily streak" value={`${dailyStreak} hari`} detail={dailyStreak ? "Pertahankan runtutanmu" : "Mulai satu langkah"} accent="coral" />
                   <StatCard icon={Clock3} label="Waktu minggu ini" value={`${Math.floor(weeklyMinutes / 60)}j ${weeklyMinutes % 60}m`} detail={weeklyMinutes ? `${weeklyMinutes} menit tercatat` : "Belum ada aktivitas"} accent="sage" />
                   <StatCard icon={Target} label="Target tercapai" value={`${progress}%`} detail={`${completed} dari ${tasks.length} langkah`} accent="ochre" />
                 </div>

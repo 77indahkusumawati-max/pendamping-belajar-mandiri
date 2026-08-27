@@ -39,3 +39,8 @@
 - [x] Tambahkan fitur berbagi sertifikat dan peringkat leaderboard.
 - [x] Tambahkan animasi serta efek suara saat pencapaian.
 - [x] Uji seluruh alur dan simpan checkpoint baru.
+
+- [x] Tambahkan mode gelap dengan kontrol tema dan penyimpanan pilihan pengguna.
+- [x] Tampilkan pembahasan jawaban salah setelah kuis selesai.
+- [x] Tambahkan perhitungan daily streak dari aktivitas belajar tersimpan.
+- [x] Validasi tema, kuis, streak, test, dan simpan checkpoint.

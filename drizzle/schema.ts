@@ -31,6 +31,7 @@ export const studyProgress = mysqlTable("studyProgress", {
   taskState: text("taskState").notNull(),
   completedMaterials: text("completedMaterials").notNull(),
   weeklyActivity: text("weeklyActivity").notNull(),
+  activityDates: text("activityDates"),
   dailyTargetMinutes: int("dailyTargetMinutes").default(30).notNull(),
   reminderEnabled: int("reminderEnabled").default(0).notNull(),
   reminderTime: varchar("reminderTime", { length: 5 }).default("19:00").notNull(),

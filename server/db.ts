@@ -101,6 +101,7 @@ export async function upsertStudyProgress(input: {
   taskState: string;
   completedMaterials: string;
   weeklyActivity: string;
+  activityDates: string | null;
   dailyTargetMinutes: number;
   reminderEnabled: number;
   reminderTime: string;
@@ -112,6 +113,7 @@ export async function upsertStudyProgress(input: {
       taskState: input.taskState,
       completedMaterials: input.completedMaterials,
       weeklyActivity: input.weeklyActivity,
+      activityDates: input.activityDates,
       dailyTargetMinutes: input.dailyTargetMinutes,
       reminderEnabled: input.reminderEnabled,
       reminderTime: input.reminderTime,

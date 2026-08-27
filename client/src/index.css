@@ -59,3 +59,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid #e4694b; outline-
   .animate-in { animation: rise-in 520ms cubic-bezier(.23,1,.32,1) both; }
   @keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 }
+
+html.dark body { background: #121917; color: #edf2ed; }
+html.dark [class*="bg-[#f6f1e8]"] { background-color: #121917 !important; }
+html.dark [class*="bg-[#fbf8f3]"] { background-color: #1b2521 !important; }
+html.dark [class*="bg-[#f1ece3]"], html.dark [class*="bg-[#ebe4d8]"] { background-color: #26332d !important; }
+html.dark [class*="bg-[#dce8d9]"] { background-color: #263d32 !important; }
+html.dark [class*="bg-[#f8e9e2]"], html.dark [class*="bg-[#f5dfd8]"] { background-color: #432b28 !important; }
+html.dark [class*="text-[#1c2421]"] { color: #edf2ed !important; }
+html.dark [class*="text-[#65716a]"], html.dark [class*="text-[#8a938d]"], html.dark [class*="text-[#a4aaa5]"] { color: #aab8af !important; }
+html.dark [class*="text-[#31483a]"], html.dark [class*="text-[#52715b]"] { color: #b8d3bd !important; }
+html.dark [class*="border-[#1c2421]"] { border-color: rgba(237,242,237,.14) !important; }
+html.dark input, html.dark textarea { color: #edf2ed; }

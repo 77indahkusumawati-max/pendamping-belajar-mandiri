@@ -28,7 +28,7 @@ export default function Materials() {
   const isDone = completedMaterials.includes(item.subject);
   const markDone = () => {
     const nextMaterials = Array.from(new Set([...completedMaterials, item.subject]));
-    saveProgress.mutate({ tasks: progressQuery.data?.tasks ?? [], completedMaterials: nextMaterials, weeklyActivity: progressQuery.data?.weeklyActivity ?? {}, dailyTargetMinutes: progressQuery.data?.dailyTargetMinutes ?? 30, reminderEnabled: progressQuery.data?.reminderEnabled ?? 0, reminderTime: progressQuery.data?.reminderTime ?? "19:00" });
+    saveProgress.mutate({ tasks: progressQuery.data?.tasks ?? [], completedMaterials: nextMaterials, weeklyActivity: progressQuery.data?.weeklyActivity ?? {}, activityDates: progressQuery.data?.activityDates ?? [], dailyTargetMinutes: progressQuery.data?.dailyTargetMinutes ?? 30, reminderEnabled: progressQuery.data?.reminderEnabled ?? 0, reminderTime: progressQuery.data?.reminderTime ?? "19:00" });
     navigate(`/materi/${encodeURIComponent(item.subject)}`);
   };
 
