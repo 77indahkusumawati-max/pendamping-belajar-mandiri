@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Materials from "./pages/Materials";
 import Quiz from "./pages/Quiz";
 import Progress from "./pages/Progress";
+import Leaderboard from "./pages/Leaderboard";
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#f6f1e8] text-sm text-[#65716a]">Memuat ruang belajar...</div>;
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/materi/:subject" component={() => <RequireAuth><Materials /></RequireAuth>} />
       <Route path="/kuis" component={() => <RequireAuth><Quiz /></RequireAuth>} />
       <Route path="/progres" component={() => <RequireAuth><Progress /></RequireAuth>} />
+      <Route path="/leaderboard" component={() => <RequireAuth><Leaderboard /></RequireAuth>} />
       <Route path="/" component={AuthHome} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

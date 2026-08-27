@@ -28,3 +28,8 @@
 - [x] Samakan label jumlah soal dashboard dengan bank soal.
 - [x] Ganti metrik dashboard statis dengan perhitungan dari data server.
 - [x] Buat checkpoint final setelah validasi terakhir.
+
+- [x] Tambahkan leaderboard berbasis progres dan hasil kuis pengguna.
+- [x] Tambahkan pengaturan serta pengingat target belajar harian.
+- [x] Tambahkan lencana dan unduhan sertifikat setelah kuis sempurna.
+- [x] Uji seluruh alur fitur baru dan simpan checkpoint.

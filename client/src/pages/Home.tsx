@@ -69,6 +69,8 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [completedMaterials, setCompletedMaterials] = useState<string[]>([]);
   const [weeklyActivity, setWeeklyActivity] = useState<Record<string, number>>({});
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState("19:00");
   const [progressHydrated, setProgressHydrated] = useState(false);
   const userName = user?.name || "teman belajar";
   useEffect(() => {
@@ -76,13 +78,15 @@ export default function Home() {
       if (progressQuery.data.tasks) setTasks(progressQuery.data.tasks);
       setCompletedMaterials(progressQuery.data.completedMaterials);
       setWeeklyActivity(progressQuery.data.weeklyActivity);
+      setReminderEnabled(Boolean(progressQuery.data.reminderEnabled));
+      setReminderTime(progressQuery.data.reminderTime);
       setProgressHydrated(true);
     }
   }, [progressQuery.data, progressQuery.isError, progressQuery.isSuccess, progressHydrated]);
   useEffect(() => {
     if (!progressHydrated) return;
-    saveProgress.mutate({ tasks, completedMaterials, weeklyActivity, dailyTargetMinutes: 30 });
-  }, [tasks, completedMaterials, weeklyActivity, progressHydrated]);
+    saveProgress.mutate({ tasks, completedMaterials, weeklyActivity, dailyTargetMinutes: 30, reminderEnabled: reminderEnabled ? 1 : 0, reminderTime });
+  }, [tasks, completedMaterials, weeklyActivity, reminderEnabled, reminderTime, progressHydrated]);
   const [query, setQuery] = useState("");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
@@ -94,6 +98,16 @@ export default function Home() {
   const activeDays = weekDays.filter((day) => (weeklyActivity[day] ?? 0) > 0).length;
   const today = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"][new Date().getDay()];
   const todayMinutes = weeklyActivity[today] ?? 0;
+  const reminderDue = reminderEnabled && todayMinutes < 30 && new Date().toTimeString().slice(0, 5) >= reminderTime;
+  useEffect(() => {
+    if (!reminderDue || typeof window === "undefined" || !("Notification" in window)) return;
+    const sentKey = `temanbelajar_reminder_${new Date().toISOString().slice(0, 10)}`;
+    if (localStorage.getItem(sentKey) === "true") return;
+    if (Notification.permission === "granted") {
+      new Notification("Temanbelajar", { body: `Target belajar ${30} menitmu masih menunggu.` });
+      localStorage.setItem(sentKey, "true");
+    }
+  }, [reminderDue]);
   const filteredSubjects = useMemo(
     () => subjects.filter((subject) => subject.name.toLowerCase().includes(query.toLowerCase())),
     [query],
@@ -107,6 +121,10 @@ export default function Home() {
     toast("Menyimpan progres belajar...");
   };
 
+  const toggleReminder = async () => {
+    if (!reminderEnabled && typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") await Notification.requestPermission();
+    setReminderEnabled((value) => !value);
+  };
   const handleAction = (message: string) => toast(message, { description: "Fitur ini siap dipakai pada prototipe berikutnya." });
 
   if (progressQuery.isError) return <main className="flex min-h-screen items-center justify-center bg-[#f6f1e8] px-5 text-center"><div className="max-w-md rounded-2xl border border-[#e4694b]/20 bg-[#fbf8f3] p-8"><h1 className="font-display text-2xl font-bold">Progres belum dapat dimuat</h1><p className="mt-3 text-sm leading-6 text-[#65716a]">Data tidak akan ditimpa dengan data kosong. Periksa koneksi lalu muat ulang halaman.</p><button onClick={() => progressQuery.refetch()} className="mt-6 rounded-xl bg-[#1c2421] px-4 py-3 text-sm font-bold text-[#f6f1e8]">Coba lagi</button></div></main>;
@@ -131,10 +149,11 @@ export default function Home() {
                 ["Materi belajar", BookOpen],
                 ["Rencana saya", CalendarDays],
                 ["Progres", Trophy],
+                ["Leaderboard", Trophy],
               ].map(([label, Icon]) => (
                 <button
                   key={label as string}
-                  onClick={() => { setActiveNav(label as string); setShowMobileMenu(false); if (label === "Progres") navigate("/progres"); if (label === "Materi belajar") navigate("/materi/Matematika"); }}
+                  onClick={() => { setActiveNav(label as string); setShowMobileMenu(false); if (label === "Progres") navigate("/progres"); if (label === "Leaderboard") navigate("/leaderboard"); if (label === "Materi belajar") navigate("/materi/Matematika"); }}
                   className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition duration-200 active:scale-[.98] ${activeNav === label ? "bg-[#1c2421] text-[#f6f1e8] shadow-[0_8px_20px_rgba(28,36,33,.12)]" : "text-[#65716a] hover:bg-[#ebe4d8] hover:text-[#1c2421]"}`}
                 >
                   <Icon size={17} strokeWidth={1.8} />
@@ -185,6 +204,7 @@ export default function Home() {
             <div className="absolute bottom-5 right-6 hidden text-right sm:block"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#8da092]">sesi aktif</p><p className="mt-1 font-display text-2xl font-bold text-[#fbf8f3]">{todayMinutes} <span className="text-sm font-medium text-[#aab8af]">menit</span></p></div>
           </section>
           <div className="mb-8 flex items-start gap-3 rounded-2xl border border-[#e4694b]/15 bg-[#f8e9e2] p-4 text-sm leading-6 text-[#8f4b3b]"><Sparkles size={17} className="mt-1 shrink-0" /><p><strong className="font-display">Dirancang dari suara pengguna.</strong> Empathy Map dan User Persona di aplikasi ini merupakan gambaran umum dari pola jawaban 26 responden, bukan gambaran satu individu tertentu.</p></div>
+          <section className={`mb-8 flex flex-col justify-between gap-4 rounded-2xl border p-4 sm:flex-row sm:items-center ${reminderDue ? "border-[#e4694b]/25 bg-[#f8e9e2]" : "border-[#1c2421]/10 bg-[#fbf8f3]"}`}><div className="flex items-start gap-3"><Bell size={18} className={reminderDue ? "mt-1 text-[#e4694b]" : "mt-1 text-[#6e9978]"} /><div><p className="text-sm font-bold">{reminderDue ? "Target belajarmu masih menunggu." : reminderEnabled ? "Pengingat harian aktif." : "Atur pengingat harian."}</p><p className="mt-1 text-xs leading-5 text-[#65716a]">{reminderDue ? `Pengingat aplikasi dijadwalkan pukul ${reminderTime}.` : reminderEnabled ? `Jadwal pengingat: ${reminderTime}.` : "Pilih waktu agar target belajar tidak terlupakan."}</p></div></div><div className="flex items-center gap-2"><input aria-label="Waktu pengingat harian" type="time" value={reminderTime} onChange={(event) => setReminderTime(event.target.value)} className="rounded-lg border border-[#1c2421]/10 bg-[#fbf8f3] px-2 py-2 text-xs font-bold" /><button onClick={toggleReminder} className={`rounded-lg px-3 py-2 text-xs font-bold ${reminderEnabled ? "bg-[#1c2421] text-[#f6f1e8]" : "bg-[#e4694b] text-white"}`}>{reminderEnabled ? "Matikan" : "Aktifkan"}</button></div></section>
 
           <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
             <div className="min-w-0">

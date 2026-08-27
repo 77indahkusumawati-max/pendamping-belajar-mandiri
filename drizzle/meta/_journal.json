@@ -15,6 +15,13 @@
       "when": 1787845922226,
       "tag": "0001_thin_khan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787847731196,
+      "tag": "0002_red_aqueduct",
+      "breakpoints": true
     }
   ]
 }

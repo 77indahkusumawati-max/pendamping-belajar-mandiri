@@ -102,6 +102,8 @@ export async function upsertStudyProgress(input: {
   completedMaterials: string;
   weeklyActivity: string;
   dailyTargetMinutes: number;
+  reminderEnabled: number;
+  reminderTime: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
@@ -111,6 +113,8 @@ export async function upsertStudyProgress(input: {
       completedMaterials: input.completedMaterials,
       weeklyActivity: input.weeklyActivity,
       dailyTargetMinutes: input.dailyTargetMinutes,
+      reminderEnabled: input.reminderEnabled,
+      reminderTime: input.reminderTime,
       updatedAt: new Date(),
     },
   });
@@ -128,4 +132,18 @@ export async function getRecentQuizAttempts(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(quizAttempts).where(eq(quizAttempts.userId, userId)).orderBy(desc(quizAttempts.completedAt)).limit(10);
+}
+
+export async function getLeaderboard(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const people = await db.select({ id: users.id, name: users.name }).from(users).limit(100);
+  const rows = await Promise.all(people.map(async (person) => {
+    const progress = await getStudyProgress(person.id);
+    const attempts = await db.select().from(quizAttempts).where(eq(quizAttempts.userId, person.id));
+    const completedMaterials = progress ? JSON.parse(progress.completedMaterials) as string[] : [];
+    const quizPoints = attempts.reduce((sum, attempt) => sum + (attempt.total ? Math.round((attempt.score / attempt.total) * 100) : 0), 0);
+    return { userId: person.id, name: person.name || "Teman belajar", points: completedMaterials.length * 10 + quizPoints, materialsCompleted: completedMaterials.length, quizzesCompleted: attempts.length, isCurrentUser: person.id === userId };
+  }));
+  return rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name)).map((row, index) => ({ ...row, rank: index + 1 }));
 }
