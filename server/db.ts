@@ -1,7 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, quizAttempts, studyProgress, users } from "../drizzle/schema";
+import { InsertUser, materialBookmarks, materialComments, quizAttempts, studyProgress, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { and } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -148,4 +149,36 @@ export async function getLeaderboard(userId: number) {
     return { userId: person.id, name: person.name || "Teman belajar", points: completedMaterials.length * 10 + quizPoints, materialsCompleted: completedMaterials.length, quizzesCompleted: attempts.length, isCurrentUser: person.id === userId };
   }));
   return rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name)).map((row, index) => ({ ...row, rank: index + 1 }));
+}
+
+
+export async function getBookmarkedSubjects(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(materialBookmarks).where(eq(materialBookmarks.userId, userId));
+}
+
+export async function toggleMaterialBookmark(userId: number, subject: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db.select().from(materialBookmarks).where(and(eq(materialBookmarks.userId, userId), eq(materialBookmarks.subject, subject))).limit(1);
+  if (existing.length) {
+    await db.delete(materialBookmarks).where(eq(materialBookmarks.id, existing[0].id));
+    return { bookmarked: false };
+  }
+  await db.insert(materialBookmarks).values({ userId, subject });
+  return { bookmarked: true };
+}
+
+export async function getMaterialComments(subject: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select({ id: materialComments.id, subject: materialComments.subject, body: materialComments.body, createdAt: materialComments.createdAt, userId: materialComments.userId, userName: users.name }).from(materialComments).leftJoin(users, eq(materialComments.userId, users.id)).where(eq(materialComments.subject, subject)).orderBy(desc(materialComments.createdAt));
+}
+
+export async function addMaterialComment(input: { userId: number; subject: string; body: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(materialComments).values(input);
+  return getMaterialComments(input.subject);
 }

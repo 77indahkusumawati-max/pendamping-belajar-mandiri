@@ -9,7 +9,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Materials from "./pages/Materials";
+import Materials, { MaterialsCatalog } from "./pages/Materials";
 import Quiz from "./pages/Quiz";
 import Progress from "./pages/Progress";
 import Leaderboard from "./pages/Leaderboard";
@@ -28,6 +28,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/materi" component={() => <RequireAuth><MaterialsCatalog /></RequireAuth>} />
       <Route path="/materi/:subject" component={() => <RequireAuth><Materials /></RequireAuth>} />
       <Route path="/kuis" component={() => <RequireAuth><Quiz /></RequireAuth>} />
       <Route path="/progres" component={() => <RequireAuth><Progress /></RequireAuth>} />

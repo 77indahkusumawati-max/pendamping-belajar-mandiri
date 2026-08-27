@@ -3,7 +3,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { addQuizAttempt, getLeaderboard, getRecentQuizAttempts, getStudyProgress, upsertStudyProgress } from "./db";
+import { addMaterialComment, addQuizAttempt, getBookmarkedSubjects, getLeaderboard, getMaterialComments, getRecentQuizAttempts, getStudyProgress, toggleMaterialBookmark, upsertStudyProgress } from "./db";
+import { invokeLLM } from "./_core/llm";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -61,6 +62,19 @@ export const appRouter = router({
   quiz: router({
     submit: protectedProcedure.input(z.object({ quizKey: z.string().max(64), score: z.number().int().min(0), total: z.number().int().positive() })).mutation(({ ctx, input }) => addQuizAttempt({ userId: ctx.user.id, ...input })),
     recent: protectedProcedure.query(({ ctx }) => getRecentQuizAttempts(ctx.user.id)),
+  }),
+  materials: router({
+    bookmarks: protectedProcedure.query(({ ctx }) => getBookmarkedSubjects(ctx.user.id)),
+    toggleBookmark: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120) })).mutation(({ ctx, input }) => toggleMaterialBookmark(ctx.user.id, input.subject)),
+    comments: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120) })).query(({ input }) => getMaterialComments(input.subject)),
+    addComment: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120), body: z.string().trim().min(2).max(1000) })).mutation(({ ctx, input }) => addMaterialComment({ userId: ctx.user.id, ...input })),
+    askAI: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120), question: z.string().trim().min(2).max(1000) })).mutation(async ({ input }) => {
+      const response = await invokeLLM({ messages: [
+        { role: "system", content: "Kamu adalah Teman AI, pendamping belajar untuk pelajar SMK. Jawab dalam bahasa Indonesia yang sederhana, bertahap, dan tidak mengarang sumber. Jika pertanyaan di luar materi, arahkan kembali dengan sopan." },
+        { role: "user", content: `Materi: ${input.subject}\nPertanyaan: ${input.question}` },
+      ] });
+      return { answer: String(response.choices[0]?.message?.content ?? "Maaf, jawaban AI belum tersedia.") };
+    }),
   }),
 });
 

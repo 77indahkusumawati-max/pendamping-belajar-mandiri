@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, uniqueIndex } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -49,3 +49,18 @@ export const quizAttempts = mysqlTable("quizAttempts", {
 
 export type StudyProgress = typeof studyProgress.$inferSelect;
 export type QuizAttempt = typeof quizAttempts.$inferSelect;
+
+export const materialBookmarks = mysqlTable("materialBookmarks", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  subject: varchar("subject", { length: 120 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({ userSubjectUnique: uniqueIndex("materialBookmarks_user_subject").on(table.userId, table.subject) }));
+
+export const materialComments = mysqlTable("materialComments", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  subject: varchar("subject", { length: 120 }).notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

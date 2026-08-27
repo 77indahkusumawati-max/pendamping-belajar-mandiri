@@ -59,3 +59,11 @@
 - [x] Simpan checkpoint setelah perubahan konten dan UI terbaru.
 
 - [x] Simpan checkpoint final setelah perubahan konten, UI, dan test autentikasi terbaru.
+
+- [x] Tambahkan pencarian dan filter pada katalog materi.
+- [x] Tambahkan bookmark materi per akun dan penyimpanan lintas perangkat.
+- [x] Tambahkan komentar/diskusi pada halaman setiap materi.
+- [x] Tambahkan asisten AI server-side untuk membantu memahami materi.
+- [x] Tambahkan test, validasi responsif, dan checkpoint fitur baru.
+
+- [x] Simpan checkpoint baru setelah fitur pencarian/filter, bookmark, diskusi, AI, dan validasi final selesai.
