@@ -142,3 +142,19 @@
 
 - [x] Tambahkan dropdown atau chip filter tag terpisah dari pencarian bebas.
 - [x] Simpan checkpoint setelah filter kategori dan tag tervalidasi.
+
+# Permintaan ekspansi riwayat, pagination, dan kurikulum
+- [x] Tambahkan tabel riwayat skor kuis per materi PDF.
+- [x] Hubungkan hasil kuis PDF ke riwayat skor dan tampilkan grafik perkembangan.
+- [x] Tambahkan edit judul, kategori, dan tag pada dokumen unggahan sendiri.
+- [x] Tambahkan pagination dokumen pengguna dengan pencarian dan filter tetap berjalan.
+- [x] Tambahkan materi Fisika, Kimia, dan mapel SMA/SMK yang lebih lengkap dari katalog TK hingga kuliah.
+- [x] Tambahkan test, validasi visual, build production, dan checkpoint.
+
+- [x] Tambahkan grafik perkembangan nilai per materi PDF pada profil.
+- [x] Reset atau clamp halaman upload saat pencarian/filter berubah.
+- [x] Tambahkan unit test endpoint riwayat skor PDF dan update metadata.
+- [x] Simpan checkpoint setelah seluruh penyempurnaan tervalidasi.
+
+- [x] Reset halaman dokumen ketika kata kunci atau filter berubah dan clamp saat jumlah halaman berkurang.
+- [x] Simpan checkpoint setelah perbaikan pagination tervalidasi.

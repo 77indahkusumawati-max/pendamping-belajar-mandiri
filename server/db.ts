@@ -10,6 +10,7 @@ import {
   studyPreferences,
   studyProgress,
   uploadedMaterials,
+  uploadedQuizAttempts,
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -158,6 +159,40 @@ export async function addQuizAttempt(input: {
   return getRecentQuizAttempts(input.userId);
 }
 
+export async function saveUploadedQuizAttempt(input: {
+  userId: number;
+  uploadId: number;
+  score: number;
+  total: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(uploadedQuizAttempts).values(input);
+  await db.insert(quizAttempts).values({
+    userId: input.userId,
+    quizKey: `PDF-${input.uploadId}`,
+    score: input.score,
+    total: input.total,
+  });
+  return getUploadedQuizAttempts(input.userId, input.uploadId);
+}
+export async function getUploadedQuizAttempts(
+  userId: number,
+  uploadId: number
+) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(uploadedQuizAttempts)
+    .where(
+      and(
+        eq(uploadedQuizAttempts.userId, userId),
+        eq(uploadedQuizAttempts.uploadId, uploadId)
+      )
+    )
+    .orderBy(desc(uploadedQuizAttempts.completedAt));
+}
 export async function getRecentQuizAttempts(userId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -475,6 +510,21 @@ export async function upsertStudyPreferences(input: {
   return getStudyPreferences(input.userId);
 }
 
+export async function updateUploadedMaterial(
+  userId: number,
+  id: number,
+  input: { title: string; category: string; tags: string }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db
+    .update(uploadedMaterials)
+    .set(input)
+    .where(
+      and(eq(uploadedMaterials.id, id), eq(uploadedMaterials.userId, userId))
+    );
+  return getUploadedMaterials(userId);
+}
 export async function getUploadedMaterials(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");

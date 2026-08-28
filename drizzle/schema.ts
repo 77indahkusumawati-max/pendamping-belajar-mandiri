@@ -50,6 +50,15 @@ export const quizAttempts = mysqlTable("quizAttempts", {
 export type StudyProgress = typeof studyProgress.$inferSelect;
 export type QuizAttempt = typeof quizAttempts.$inferSelect;
 
+export const uploadedQuizAttempts = mysqlTable("uploadedQuizAttempts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  uploadId: int("uploadId").notNull(),
+  score: int("score").notNull(),
+  total: int("total").notNull(),
+  completedAt: timestamp("completedAt").defaultNow().notNull(),
+});
+
 export const materialBookmarks = mysqlTable("materialBookmarks", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),

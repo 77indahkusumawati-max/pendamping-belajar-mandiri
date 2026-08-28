@@ -23,12 +23,15 @@ import {
   getStudyPreferences,
   getStudyProgress,
   getUploadedMaterials,
+  getUploadedQuizAttempts,
   getUploadedMaterial,
   deleteUploadedMaterial,
   saveUploadedExtraction,
   moderateMaterialComment,
   saveAIConversation,
   saveUploadedMaterial,
+  saveUploadedQuizAttempt,
+  updateUploadedMaterial,
   toggleMaterialBookmark,
   updateMaterialComment,
   upsertManagedMaterial,
@@ -226,6 +229,43 @@ export const appRouter = router({
           fileUrl: stored.url,
         });
       }),
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number().int().positive(),
+          title: z.string().trim().min(2).max(180),
+          category: z.string().trim().min(2).max(80),
+          tags: z.string().trim().max(500),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        updateUploadedMaterial(ctx.user.id, input.id, {
+          title: input.title,
+          category: input.category,
+          tags: input.tags,
+        })
+      ),
+    scoreHistory: protectedProcedure
+      .input(z.object({ uploadId: z.number().int().positive() }))
+      .query(({ ctx, input }) =>
+        getUploadedQuizAttempts(ctx.user.id, input.uploadId)
+      ),
+    saveScore: protectedProcedure
+      .input(
+        z.object({
+          uploadId: z.number().int().positive(),
+          score: z.number().int().min(0),
+          total: z.number().int().positive(),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        saveUploadedQuizAttempt({
+          userId: ctx.user.id,
+          uploadId: input.uploadId,
+          score: input.score,
+          total: input.total,
+        })
+      ),
     delete: protectedProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(({ ctx, input }) =>

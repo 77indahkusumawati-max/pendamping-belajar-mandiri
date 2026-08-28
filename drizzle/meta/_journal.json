@@ -71,6 +71,13 @@
       "when": 1787889708758,
       "tag": "0009_pale_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1787890561455,
+      "tag": "0010_living_thena",
+      "breakpoints": true
     }
   ]
 }

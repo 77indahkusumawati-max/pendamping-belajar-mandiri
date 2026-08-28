@@ -17,6 +17,8 @@ import { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -46,6 +48,51 @@ const trackOptions = [
   "Akademik",
 ];
 
+function UploadedQuizHistory({ uploadId }: { uploadId: number }) {
+  const { data } = trpc.uploads.scoreHistory.useQuery({ uploadId });
+  if (!data?.length) return null;
+  return (
+    <div className="mt-3 rounded-lg bg-[#f1ece3] p-3">
+      <p className="text-xs font-bold text-[#1c2421]">Riwayat nilai</p>
+      <div className="mt-2 h-28">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={[...data].reverse().map(attempt => ({
+              nilai: Math.round(
+                (attempt.score / Math.max(1, attempt.total)) * 100
+              ),
+            }))}
+          >
+            <Line
+              type="monotone"
+              dataKey="nilai"
+              stroke="#e4694b"
+              strokeWidth={2}
+              dot={{ r: 2 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-2 space-y-1">
+        {data.slice(0, 5).map(attempt => (
+          <p
+            key={attempt.id}
+            className="flex justify-between text-xs text-[#46564d]"
+          >
+            <span>
+              {new Date(attempt.completedAt).toLocaleDateString("id-ID")}
+            </span>
+            <strong>
+              {attempt.score}/{attempt.total} ·{" "}
+              {Math.round((attempt.score / attempt.total) * 100)}%
+            </strong>
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Profile() {
   const { user } = useAuth();
   const { data } = trpc.progress.get.useQuery(undefined, { retry: false });
@@ -57,6 +104,13 @@ export default function Profile() {
       preferencesQuery.refetch();
     },
     onError: () => toast.error("Preferensi belum tersimpan"),
+  });
+  const updateUpload = trpc.uploads.update.useMutation({
+    onSuccess: () => {
+      toast.success("Metadata materi diperbarui");
+      uploadsQuery.refetch();
+    },
+    onError: () => toast.error("Metadata belum dapat diperbarui"),
   });
   const deleteUpload = trpc.uploads.delete.useMutation({
     onSuccess: () => {
@@ -74,7 +128,7 @@ export default function Profile() {
     },
     onError: () => toast.error("Materi belum dapat diunggah"),
   });
-  const savePdfQuiz = trpc.quiz.submit.useMutation({
+  const savePdfQuiz = trpc.uploads.saveScore.useMutation({
     onSuccess: () =>
       toast.success("Hasil kuis PDF tersimpan ke progres dan leaderboard"),
     onError: () => toast.error("Hasil kuis belum tersimpan"),
@@ -101,6 +155,7 @@ export default function Profile() {
   const [uploadCategoryFilter, setUploadCategoryFilter] =
     useState("Semua kategori");
   const [uploadTagFilter, setUploadTagFilter] = useState("Semua tag");
+  const [uploadPage, setUploadPage] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<Record<number, boolean>>(
     {}
@@ -140,6 +195,26 @@ export default function Profile() {
       )
     )
   );
+  const filteredUploads = (uploadsQuery.data ?? []).filter(
+    upload =>
+      (uploadCategoryFilter === "Semua kategori" ||
+        upload.category === uploadCategoryFilter) &&
+      (uploadTagFilter === "Semua tag" ||
+        upload.tags
+          .split(",")
+          .map(tag => tag.trim())
+          .includes(uploadTagFilter)) &&
+      `${upload.title} ${upload.category} ${upload.tags}`
+        .toLowerCase()
+        .includes(uploadSearch.toLowerCase())
+  );
+  const uploadPageCount = Math.max(1, Math.ceil(filteredUploads.length / 6));
+  useEffect(() => {
+    setUploadPage(0);
+  }, [uploadSearch, uploadCategoryFilter, uploadTagFilter]);
+  useEffect(() => {
+    setUploadPage(page => Math.min(page, uploadPageCount - 1));
+  }, [uploadPageCount]);
   const weeklyData = Object.entries(data?.weeklyActivity ?? {}).map(
     ([day, minutes]) => ({ day, menit: minutes })
   );
@@ -229,11 +304,7 @@ export default function Profile() {
           : 0),
       0
     );
-    savePdfQuiz.mutate({
-      quizKey: `PDF-${uploadId}-${uploadTitle}`.slice(0, 64),
-      score,
-      total: quiz.length,
-    });
+    savePdfQuiz.mutate({ uploadId, score, total: quiz.length });
   };
   const isQuizComplete = (uploadId: number, rawQuiz: string) =>
     parseQuiz(rawQuiz).every(
@@ -485,20 +556,8 @@ export default function Profile() {
               </select>
             </div>
             <div className="mt-3 space-y-2">
-              {(uploadsQuery.data ?? [])
-                .filter(
-                  upload =>
-                    (uploadCategoryFilter === "Semua kategori" ||
-                      upload.category === uploadCategoryFilter) &&
-                    (uploadTagFilter === "Semua tag" ||
-                      upload.tags
-                        .split(",")
-                        .map(tag => tag.trim())
-                        .includes(uploadTagFilter)) &&
-                    `${upload.title} ${upload.category} ${upload.tags}`
-                      .toLowerCase()
-                      .includes(uploadSearch.toLowerCase())
-                )
+              {filteredUploads
+                .slice(uploadPage * 6, uploadPage * 6 + 6)
                 .map(upload => (
                   <div key={upload.id} className="rounded-xl bg-[#f1ece3] p-3">
                     <a
@@ -518,6 +577,32 @@ export default function Profile() {
                       </span>
                       <Download size={15} />
                     </a>
+                    <button
+                      onClick={() => {
+                        const nextTitle = window.prompt(
+                          "Judul materi",
+                          upload.title
+                        );
+                        const nextCategory = window.prompt(
+                          "Kategori",
+                          upload.category
+                        );
+                        const nextTags = window.prompt(
+                          "Tag dipisahkan koma",
+                          upload.tags
+                        );
+                        if (nextTitle && nextCategory && nextTags !== null)
+                          updateUpload.mutate({
+                            id: upload.id,
+                            title: nextTitle,
+                            category: nextCategory,
+                            tags: nextTags,
+                          });
+                      }}
+                      className="mt-2 mr-3 text-xs font-bold text-[#e4694b]"
+                    >
+                      Edit metadata
+                    </button>
                     <button
                       onClick={() => deleteUpload.mutate({ id: upload.id })}
                       className="mt-2 text-xs font-bold text-[#9b4938]"
@@ -644,6 +729,7 @@ export default function Profile() {
                                   )}
                                   %
                                 </p>
+                                <UploadedQuizHistory uploadId={upload.id} />
                                 {isQuizComplete(
                                   upload.id,
                                   upload.aiQuiz ?? ""
@@ -673,6 +759,31 @@ export default function Profile() {
                   </div>
                 ))}
             </div>
+            {filteredUploads.length > 6 && (
+              <div className="mt-3 flex items-center justify-between text-xs font-bold text-[#46564d]">
+                <button
+                  disabled={uploadPage === 0}
+                  onClick={() => setUploadPage(page => Math.max(0, page - 1))}
+                  className="rounded-lg border border-[#1c2421]/15 px-3 py-2 disabled:opacity-40"
+                >
+                  Sebelumnya
+                </button>
+                <span>
+                  Halaman {uploadPage + 1} / {uploadPageCount}
+                </span>
+                <button
+                  disabled={uploadPage + 1 >= uploadPageCount}
+                  onClick={() =>
+                    setUploadPage(page =>
+                      Math.min(uploadPageCount - 1, page + 1)
+                    )
+                  }
+                  className="rounded-lg border border-[#1c2421]/15 px-3 py-2 disabled:opacity-40"
+                >
+                  Berikutnya
+                </button>
+              </div>
+            )}
           </div>
         </section>
         <section className="mt-7 rounded-2xl bg-[#dce8d9] p-6">
