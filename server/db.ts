@@ -279,3 +279,24 @@ export async function saveUploadedMaterial(input: { userId: number; title: strin
   await db.insert(uploadedMaterials).values(input);
   return getUploadedMaterials(input.userId);
 }
+
+export async function getUploadedMaterial(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select().from(uploadedMaterials).where(and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id))).limit(1);
+  return rows[0];
+}
+
+export async function deleteUploadedMaterial(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(uploadedMaterials).where(and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id)));
+  return getUploadedMaterials(userId);
+}
+
+export async function saveUploadedExtraction(userId: number, id: number, aiSummary: string, aiQuiz: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(uploadedMaterials).set({ aiSummary, aiQuiz }).where(and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id)));
+  return getUploadedMaterial(userId, id);
+}

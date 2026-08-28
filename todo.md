@@ -106,3 +106,25 @@
 - [x] Tambahkan fallback rekomendasi eksplisit saat minat atau jalur tidak menemukan materi yang cocok.
 - [x] Tambahkan test sukses mutation preferensi, editor admin, dan upload dengan storage terisolasi.
 - [x] Simpan checkpoint setelah celah validasi terakhir tertutup.
+
+# Permintaan ekspansi AI dan pencapaian
+- [x] Tambahkan ekstraksi PDF berbantuan AI menjadi ringkasan singkat.
+- [x] Tambahkan kuis interaktif dari hasil ekstraksi materi PDF.
+- [x] Tambahkan pratinjau langsung pada editor materi admin sebelum diterbitkan.
+- [x] Tambahkan badge otomatis berdasarkan target progres belajar pada profil.
+- [x] Tambahkan test, validasi visual, build production, dan checkpoint.
+
+- [x] Validasi output LLM dengan schema server-side dan tangani JSON/PDF yang gagal.
+- [x] Refactor kuis PDF ke state React dengan skor, feedback, reset, dan parsing aman.
+- [x] Tambahkan test ekstraksi AI dengan mock LLM/storage.
+- [x] Simpan checkpoint final setelah penguatan AI tervalidasi.
+
+- [x] Bungkus kegagalan signed URL dan invokeLLM dengan pesan TRPCError yang ramah.
+- [x] Tampilkan skor dan feedback ringkas kuis PDF setelah pengguna menjawab.
+- [x] Simpan checkpoint final hardening AI.
+
+- [x] Tampilkan feedback eksplisit kuis PDF: benar, salah, persentase, dan penjelasan jawaban setelah submit.
+- [x] Simpan checkpoint setelah feedback kuis selesai divalidasi.
+
+- [x] Tampilkan persentase hasil kuis PDF secara eksplisit bersama skor benar dan salah.
+- [x] Simpan checkpoint final setelah persentase kuis tervalidasi.

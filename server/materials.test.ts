@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { vi } from "vitest";
-vi.mock("./storage", () => ({ storagePut: vi.fn(async () => ({ key: "test/material.txt", url: "/manus-storage/test/material.txt" })) }));
+vi.mock("./storage", () => ({ storagePut: vi.fn(async () => ({ key: "test/material.txt", url: "/manus-storage/test/material.txt" })), storageGetSignedUrl: vi.fn(async () => "https://example.test/test.pdf") }));
+vi.mock("./_core/llm", () => ({ invokeLLM: vi.fn(async () => ({ choices: [{ message: { content: JSON.stringify({ summary: "Ringkasan PDF yang cukup panjang untuk memenuhi validasi hasil ekstraksi AI.", quiz: Array.from({ length: 5 }, (_, index) => ({ question: `Soal ${index + 1} materi`, options: ["A", "B", "C", "D"], answerIndex: 0, explanation: "Penjelasan jawaban berdasarkan materi." })) }) } }] })) }));
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -24,6 +25,7 @@ describe("material collaboration routes", () => {
     const caller = appRouter.createCaller(unauthenticatedContext());
     await expect(caller.materials.askAI({ subject: "Basis Data", question: "Apa itu primary key?" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     await expect(caller.materials.conversation({ subject: "Basis Data" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(caller.uploads.extract({ id: 1 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
   it("protects comment update and delete routes", async () => {
@@ -62,6 +64,17 @@ describe("material collaboration routes", () => {
     await expect(adminCaller.admin.materials()).resolves.toBeInstanceOf(Array);
     await expect(userCaller.preferences.get()).resolves.toHaveProperty("preferredTrack");
     await expect(userCaller.uploads.list()).resolves.toBeInstanceOf(Array);
+  });
+
+  it("extracts a valid PDF into a summary and five-question quiz", async () => {
+    const caller = appRouter.createCaller(authenticatedContext("user"));
+    const created = await caller.uploads.create({ title: "PDF Ekstraksi Uji", fileName: "ekstraksi.pdf", mimeType: "application/pdf", sizeBytes: 24, dataBase64: "aGVsbG8gd29ybGQgdGVzdCBwZGYgY29udGVudA==" });
+    const upload = created.find((item) => item.title === "PDF Ekstraksi Uji");
+    expect(upload).toBeTruthy();
+    const extracted = await caller.uploads.extract({ id: upload!.id });
+    expect(extracted.quiz).toHaveLength(5);
+    expect(extracted.summary).toContain("Ringkasan PDF");
+    await caller.uploads.delete({ id: upload!.id });
   });
 
   it("accepts valid editor, preference, and upload mutations", async () => {

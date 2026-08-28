@@ -108,5 +108,7 @@ export const uploadedMaterials = mysqlTable("uploadedMaterials", {
   fileUrl: varchar("fileUrl", { length: 1024 }).notNull(),
   mimeType: varchar("mimeType", { length: 120 }).notNull(),
   sizeBytes: int("sizeBytes").notNull(),
+  aiSummary: text("aiSummary"),
+  aiQuiz: text("aiQuiz"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

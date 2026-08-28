@@ -3,9 +3,12 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { addMaterialComment, addQuizAttempt, deleteMaterialComment, getAIConversation, getBookmarkedSubjects, getHiddenMaterialComments, getLeaderboard, getManagedMaterials, getMaterialComments, getRecentQuizAttempts, getStudyPreferences, getStudyProgress, getUploadedMaterials, moderateMaterialComment, saveAIConversation, saveUploadedMaterial, toggleMaterialBookmark, updateMaterialComment, upsertManagedMaterial, upsertStudyPreferences, upsertStudyProgress, deleteManagedMaterial } from "./db";
-import { storagePut } from "./storage";
+import { TRPCError } from "@trpc/server";
+import { addMaterialComment, addQuizAttempt, deleteMaterialComment, getAIConversation, getBookmarkedSubjects, getHiddenMaterialComments, getLeaderboard, getManagedMaterials, getMaterialComments, getRecentQuizAttempts, getStudyPreferences, getStudyProgress, getUploadedMaterials, getUploadedMaterial, deleteUploadedMaterial, saveUploadedExtraction, moderateMaterialComment, saveAIConversation, saveUploadedMaterial, toggleMaterialBookmark, updateMaterialComment, upsertManagedMaterial, upsertStudyPreferences, upsertStudyProgress, deleteManagedMaterial } from "./db";
+import { storageGetSignedUrl, storagePut } from "./storage";
 import { invokeLLM } from "./_core/llm";
+
+const extractedStudySchema = z.object({ summary: z.string().trim().min(20).max(2000), quiz: z.array(z.object({ question: z.string().trim().min(5), options: z.array(z.string().trim().min(1)).length(4), answerIndex: z.number().int().min(0).max(3), explanation: z.string().trim().min(5) })).length(5) });
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -83,6 +86,28 @@ export const appRouter = router({
       if (buffer.length > 5_000_000) throw new Error("Ukuran materi maksimal 5 MB");
       const stored = await storagePut(`user-materials/${ctx.user.id}/${input.fileName}`, buffer, input.mimeType);
       return saveUploadedMaterial({ userId: ctx.user.id, title: input.title, fileName: input.fileName, mimeType: input.mimeType, sizeBytes: buffer.length, fileKey: stored.key, fileUrl: stored.url });
+    }),
+    delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => deleteUploadedMaterial(ctx.user.id, input.id)),
+    extract: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const upload = await getUploadedMaterial(ctx.user.id, input.id);
+      if (!upload) throw new TRPCError({ code: "NOT_FOUND", message: "Materi unggahan tidak ditemukan" });
+      if (upload.mimeType !== "application/pdf") throw new TRPCError({ code: "BAD_REQUEST", message: "Ekstraksi AI saat ini hanya mendukung PDF" });
+      let pdfUrl: string;
+      try { pdfUrl = await storageGetSignedUrl(upload.fileKey); } catch { throw new TRPCError({ code: "PRECONDITION_FAILED", message: "PDF belum dapat diakses dari penyimpanan. Coba unggah ulang file." }); }
+      let response;
+      try { response = await invokeLLM({ messages: [
+        { role: "system", content: "Kamu adalah penyusun materi belajar berbahasa Indonesia. Baca PDF yang diberikan, lalu keluarkan JSON valid sesuai schema: ringkasan singkat maksimal 120 kata dan tepat 5 soal pilihan ganda. Setiap soal memiliki question, options berisi 4 pilihan, answerIndex dari 0 sampai 3, dan explanation. Jangan mengarang isi di luar PDF." },
+        { role: "user", content: [{ type: "text", text: "Ekstrak materi PDF ini menjadi ringkasan dan kuis interaktif untuk pelajar." }, { type: "file_url", file_url: { url: pdfUrl, mime_type: "application/pdf" } }] },
+      ], response_format: { type: "json_object" } }); } catch { throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Teman AI belum dapat memproses PDF saat ini. Silakan coba lagi nanti." }); }
+      const raw = response.choices[0]?.message?.content;
+      try {
+        const parsed = JSON.parse(typeof raw === "string" ? raw : JSON.stringify(raw));
+        const result = extractedStudySchema.parse(parsed);
+        await saveUploadedExtraction(ctx.user.id, input.id, result.summary, JSON.stringify(result.quiz));
+        return result;
+      } catch {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "AI belum dapat membaca PDF menjadi ringkasan dan kuis yang valid. Coba unggah PDF yang lebih jelas." });
+      }
     }),
   }),
   materials: router({
