@@ -1,7 +1,18 @@
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, aiConversations, materialBookmarks, materialComments, managedMaterials, quizAttempts, studyPreferences, studyProgress, uploadedMaterials, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  InsertUser,
+  aiConversations,
+  materialBookmarks,
+  materialComments,
+  managedMaterials,
+  quizAttempts,
+  studyPreferences,
+  studyProgress,
+  uploadedMaterials,
+  users,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
 import { and, or } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -57,8 +68,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -85,7 +96,11 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -93,7 +108,11 @@ export async function getUserByOpenId(openId: string) {
 export async function getStudyProgress(userId: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const rows = await db.select().from(studyProgress).where(eq(studyProgress.userId, userId)).limit(1);
+  const rows = await db
+    .select()
+    .from(studyProgress)
+    .where(eq(studyProgress.userId, userId))
+    .limit(1);
   return rows[0];
 }
 
@@ -109,22 +128,30 @@ export async function upsertStudyProgress(input: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.insert(studyProgress).values(input).onDuplicateKeyUpdate({
-    set: {
-      taskState: input.taskState,
-      completedMaterials: input.completedMaterials,
-      weeklyActivity: input.weeklyActivity,
-      activityDates: input.activityDates,
-      dailyTargetMinutes: input.dailyTargetMinutes,
-      reminderEnabled: input.reminderEnabled,
-      reminderTime: input.reminderTime,
-      updatedAt: new Date(),
-    },
-  });
+  await db
+    .insert(studyProgress)
+    .values(input)
+    .onDuplicateKeyUpdate({
+      set: {
+        taskState: input.taskState,
+        completedMaterials: input.completedMaterials,
+        weeklyActivity: input.weeklyActivity,
+        activityDates: input.activityDates,
+        dailyTargetMinutes: input.dailyTargetMinutes,
+        reminderEnabled: input.reminderEnabled,
+        reminderTime: input.reminderTime,
+        updatedAt: new Date(),
+      },
+    });
   return getStudyProgress(input.userId);
 }
 
-export async function addQuizAttempt(input: { userId: number; quizKey: string; score: number; total: number }) {
+export async function addQuizAttempt(input: {
+  userId: number;
+  quizKey: string;
+  score: number;
+  total: number;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.insert(quizAttempts).values(input);
@@ -134,36 +161,80 @@ export async function addQuizAttempt(input: { userId: number; quizKey: string; s
 export async function getRecentQuizAttempts(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(quizAttempts).where(eq(quizAttempts.userId, userId)).orderBy(desc(quizAttempts.completedAt)).limit(10);
+  return db
+    .select()
+    .from(quizAttempts)
+    .where(eq(quizAttempts.userId, userId))
+    .orderBy(desc(quizAttempts.completedAt))
+    .limit(10);
 }
 
 export async function getLeaderboard(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  const people = await db.select({ id: users.id, name: users.name }).from(users).limit(100);
-  const rows = await Promise.all(people.map(async (person) => {
-    const progress = await getStudyProgress(person.id);
-    const attempts = await db.select().from(quizAttempts).where(eq(quizAttempts.userId, person.id));
-    const completedMaterials = progress ? JSON.parse(progress.completedMaterials) as string[] : [];
-    const quizPoints = attempts.reduce((sum, attempt) => sum + (attempt.total ? Math.round((attempt.score / attempt.total) * 100) : 0), 0);
-    return { userId: person.id, name: person.name || "Teman belajar", points: completedMaterials.length * 10 + quizPoints, materialsCompleted: completedMaterials.length, quizzesCompleted: attempts.length, isCurrentUser: person.id === userId };
-  }));
-  return rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name)).map((row, index) => ({ ...row, rank: index + 1 }));
+  const people = await db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .limit(100);
+  const rows = await Promise.all(
+    people.map(async person => {
+      const progress = await getStudyProgress(person.id);
+      const attempts = await db
+        .select()
+        .from(quizAttempts)
+        .where(eq(quizAttempts.userId, person.id));
+      const completedMaterials = progress
+        ? (JSON.parse(progress.completedMaterials) as string[])
+        : [];
+      const quizPoints = attempts.reduce(
+        (sum, attempt) =>
+          sum +
+          (attempt.total
+            ? Math.round((attempt.score / attempt.total) * 100)
+            : 0),
+        0
+      );
+      return {
+        userId: person.id,
+        name: person.name || "Teman belajar",
+        points: completedMaterials.length * 10 + quizPoints,
+        materialsCompleted: completedMaterials.length,
+        quizzesCompleted: attempts.length,
+        isCurrentUser: person.id === userId,
+      };
+    })
+  );
+  return rows
+    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+    .map((row, index) => ({ ...row, rank: index + 1 }));
 }
-
 
 export async function getBookmarkedSubjects(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  return db.select().from(materialBookmarks).where(eq(materialBookmarks.userId, userId));
+  return db
+    .select()
+    .from(materialBookmarks)
+    .where(eq(materialBookmarks.userId, userId));
 }
 
 export async function toggleMaterialBookmark(userId: number, subject: string) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const existing = await db.select().from(materialBookmarks).where(and(eq(materialBookmarks.userId, userId), eq(materialBookmarks.subject, subject))).limit(1);
+  const existing = await db
+    .select()
+    .from(materialBookmarks)
+    .where(
+      and(
+        eq(materialBookmarks.userId, userId),
+        eq(materialBookmarks.subject, subject)
+      )
+    )
+    .limit(1);
   if (existing.length) {
-    await db.delete(materialBookmarks).where(eq(materialBookmarks.id, existing[0].id));
+    await db
+      .delete(materialBookmarks)
+      .where(eq(materialBookmarks.id, existing[0].id));
     return { bookmarked: false };
   }
   await db.insert(materialBookmarks).values({ userId, subject });
@@ -173,73 +244,193 @@ export async function toggleMaterialBookmark(userId: number, subject: string) {
 export async function getHiddenMaterialComments() {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  return db.select({ id: materialComments.id, subject: materialComments.subject, body: materialComments.body, status: materialComments.status, createdAt: materialComments.createdAt, updatedAt: materialComments.updatedAt, userId: materialComments.userId, userName: users.name }).from(materialComments).leftJoin(users, eq(materialComments.userId, users.id)).where(eq(materialComments.status, "hidden")).orderBy(desc(materialComments.updatedAt));
+  return db
+    .select({
+      id: materialComments.id,
+      subject: materialComments.subject,
+      body: materialComments.body,
+      status: materialComments.status,
+      createdAt: materialComments.createdAt,
+      updatedAt: materialComments.updatedAt,
+      userId: materialComments.userId,
+      userName: users.name,
+    })
+    .from(materialComments)
+    .leftJoin(users, eq(materialComments.userId, users.id))
+    .where(eq(materialComments.status, "hidden"))
+    .orderBy(desc(materialComments.updatedAt));
 }
 
-export async function getMaterialComments(subject: string, viewerId?: number, isAdmin = false) {
+export async function getMaterialComments(
+  subject: string,
+  viewerId?: number,
+  isAdmin = false
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const visibility = isAdmin || viewerId === undefined ? eq(materialComments.subject, subject) : and(eq(materialComments.subject, subject), or(eq(materialComments.status, "visible"), eq(materialComments.userId, viewerId)));
-  return db.select({ id: materialComments.id, subject: materialComments.subject, body: materialComments.body, status: materialComments.status, createdAt: materialComments.createdAt, userId: materialComments.userId, userName: users.name }).from(materialComments).leftJoin(users, eq(materialComments.userId, users.id)).where(visibility).orderBy(desc(materialComments.createdAt));
+  const visibility =
+    isAdmin || viewerId === undefined
+      ? eq(materialComments.subject, subject)
+      : and(
+          eq(materialComments.subject, subject),
+          or(
+            eq(materialComments.status, "visible"),
+            eq(materialComments.userId, viewerId)
+          )
+        );
+  return db
+    .select({
+      id: materialComments.id,
+      subject: materialComments.subject,
+      body: materialComments.body,
+      status: materialComments.status,
+      createdAt: materialComments.createdAt,
+      userId: materialComments.userId,
+      userName: users.name,
+    })
+    .from(materialComments)
+    .leftJoin(users, eq(materialComments.userId, users.id))
+    .where(visibility)
+    .orderBy(desc(materialComments.createdAt));
 }
 
-export async function updateMaterialComment(id: number, userId: number, body: string) {
+export async function updateMaterialComment(
+  id: number,
+  userId: number,
+  body: string
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const existing = await db.select().from(materialComments).where(and(eq(materialComments.id, id), eq(materialComments.userId, userId))).limit(1);
-  if (!existing.length) throw new Error("Komentar tidak ditemukan atau bukan milikmu");
-  await db.update(materialComments).set({ body }).where(eq(materialComments.id, id));
+  const existing = await db
+    .select()
+    .from(materialComments)
+    .where(
+      and(eq(materialComments.id, id), eq(materialComments.userId, userId))
+    )
+    .limit(1);
+  if (!existing.length)
+    throw new Error("Komentar tidak ditemukan atau bukan milikmu");
+  await db
+    .update(materialComments)
+    .set({ body })
+    .where(eq(materialComments.id, id));
   return getMaterialComments(existing[0].subject, userId);
 }
 
-export async function deleteMaterialComment(id: number, userId: number, isAdmin = false) {
+export async function deleteMaterialComment(
+  id: number,
+  userId: number,
+  isAdmin = false
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const existing = await db.select().from(materialComments).where(eq(materialComments.id, id)).limit(1);
-  if (!existing.length || (!isAdmin && existing[0].userId !== userId)) throw new Error("Komentar tidak dapat dihapus");
+  const existing = await db
+    .select()
+    .from(materialComments)
+    .where(eq(materialComments.id, id))
+    .limit(1);
+  if (!existing.length || (!isAdmin && existing[0].userId !== userId))
+    throw new Error("Komentar tidak dapat dihapus");
   await db.delete(materialComments).where(eq(materialComments.id, id));
   return { success: true };
 }
 
-export async function moderateMaterialComment(id: number, status: "visible" | "hidden") {
+export async function moderateMaterialComment(
+  id: number,
+  status: "visible" | "hidden"
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(materialComments).set({ status }).where(eq(materialComments.id, id));
+  await db
+    .update(materialComments)
+    .set({ status })
+    .where(eq(materialComments.id, id));
   return { success: true };
 }
 
-export async function addMaterialComment(input: { userId: number; subject: string; body: string }) {
+export async function addMaterialComment(input: {
+  userId: number;
+  subject: string;
+  body: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.insert(materialComments).values(input);
   return getMaterialComments(input.subject, input.userId);
 }
 
-
 export async function getAIConversation(userId: number, subject: string) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  return db.select().from(aiConversations).where(and(eq(aiConversations.userId, userId), eq(aiConversations.subject, subject))).orderBy(aiConversations.createdAt);
+  return db
+    .select()
+    .from(aiConversations)
+    .where(
+      and(
+        eq(aiConversations.userId, userId),
+        eq(aiConversations.subject, subject)
+      )
+    )
+    .orderBy(aiConversations.createdAt);
 }
 
-export async function saveAIConversation(userId: number, subject: string, entries: Array<{ role: "user" | "assistant"; message: string }>) {
+export async function saveAIConversation(
+  userId: number,
+  subject: string,
+  entries: Array<{ role: "user" | "assistant"; message: string }>
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  if (entries.length) await db.insert(aiConversations).values(entries.map((entry) => ({ userId, subject, role: entry.role, message: entry.message })));
+  if (entries.length)
+    await db.insert(aiConversations).values(
+      entries.map(entry => ({
+        userId,
+        subject,
+        role: entry.role,
+        message: entry.message,
+      }))
+    );
   return getAIConversation(userId, subject);
 }
 
 export async function getManagedMaterials() {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  return db.select().from(managedMaterials).orderBy(desc(managedMaterials.updatedAt));
+  return db
+    .select()
+    .from(managedMaterials)
+    .orderBy(desc(managedMaterials.updatedAt));
 }
 
-export async function upsertManagedMaterial(input: { id?: number; subject: string; title: string; summary: string; steps: string; source: string; level: string; difficulty: string; track: string; createdBy: number }) {
+export async function upsertManagedMaterial(input: {
+  id?: number;
+  subject: string;
+  title: string;
+  summary: string;
+  steps: string;
+  source: string;
+  level: string;
+  difficulty: string;
+  track: string;
+  createdBy: number;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   if (input.id) {
-    await db.update(managedMaterials).set({ subject: input.subject, title: input.title, summary: input.summary, steps: input.steps, source: input.source, level: input.level, difficulty: input.difficulty, track: input.track, updatedAt: new Date() }).where(eq(managedMaterials.id, input.id));
+    await db
+      .update(managedMaterials)
+      .set({
+        subject: input.subject,
+        title: input.title,
+        summary: input.summary,
+        steps: input.steps,
+        source: input.source,
+        level: input.level,
+        difficulty: input.difficulty,
+        track: input.track,
+        updatedAt: new Date(),
+      })
+      .where(eq(managedMaterials.id, input.id));
   } else {
     await db.insert(managedMaterials).values(input);
   }
@@ -256,47 +447,102 @@ export async function deleteManagedMaterial(id: number) {
 export async function getStudyPreferences(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db.select().from(studyPreferences).where(eq(studyPreferences.userId, userId)).limit(1);
+  const rows = await db
+    .select()
+    .from(studyPreferences)
+    .where(eq(studyPreferences.userId, userId))
+    .limit(1);
   return rows[0] ?? { interests: "[]", preferredTrack: "Semua jalur" };
 }
 
-export async function upsertStudyPreferences(input: { userId: number; interests: string; preferredTrack: string }) {
+export async function upsertStudyPreferences(input: {
+  userId: number;
+  interests: string;
+  preferredTrack: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.insert(studyPreferences).values(input).onDuplicateKeyUpdate({ set: { interests: input.interests, preferredTrack: input.preferredTrack, updatedAt: new Date() } });
+  await db
+    .insert(studyPreferences)
+    .values(input)
+    .onDuplicateKeyUpdate({
+      set: {
+        interests: input.interests,
+        preferredTrack: input.preferredTrack,
+        updatedAt: new Date(),
+      },
+    });
   return getStudyPreferences(input.userId);
 }
 
 export async function getUploadedMaterials(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  return db.select().from(uploadedMaterials).where(eq(uploadedMaterials.userId, userId)).orderBy(desc(uploadedMaterials.createdAt));
+  return db
+    .select()
+    .from(uploadedMaterials)
+    .where(eq(uploadedMaterials.userId, userId))
+    .orderBy(desc(uploadedMaterials.createdAt));
 }
 
-export async function saveUploadedMaterial(input: { userId: number; title: string; fileName: string; fileKey: string; fileUrl: string; mimeType: string; sizeBytes: number }) {
+export async function saveUploadedMaterial(input: {
+  userId: number;
+  title: string;
+  category?: string;
+  tags?: string;
+  fileName: string;
+  fileKey: string;
+  fileUrl: string;
+  mimeType: string;
+  sizeBytes: number;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.insert(uploadedMaterials).values(input);
+  await db.insert(uploadedMaterials).values({
+    ...input,
+    category: input.category ?? "Umum",
+    tags: input.tags ?? "",
+  });
   return getUploadedMaterials(input.userId);
 }
 
 export async function getUploadedMaterial(userId: number, id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db.select().from(uploadedMaterials).where(and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id))).limit(1);
+  const rows = await db
+    .select()
+    .from(uploadedMaterials)
+    .where(
+      and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id))
+    )
+    .limit(1);
   return rows[0];
 }
 
 export async function deleteUploadedMaterial(userId: number, id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.delete(uploadedMaterials).where(and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id)));
+  await db
+    .delete(uploadedMaterials)
+    .where(
+      and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id))
+    );
   return getUploadedMaterials(userId);
 }
 
-export async function saveUploadedExtraction(userId: number, id: number, aiSummary: string, aiQuiz: string) {
+export async function saveUploadedExtraction(
+  userId: number,
+  id: number,
+  aiSummary: string,
+  aiQuiz: string
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(uploadedMaterials).set({ aiSummary, aiQuiz }).where(and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id)));
+  await db
+    .update(uploadedMaterials)
+    .set({ aiSummary, aiQuiz })
+    .where(
+      and(eq(uploadedMaterials.userId, userId), eq(uploadedMaterials.id, id))
+    );
   return getUploadedMaterial(userId, id);
 }

@@ -103,6 +103,8 @@ export const uploadedMaterials = mysqlTable("uploadedMaterials", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   title: varchar("title", { length: 180 }).notNull(),
+  category: varchar("category", { length: 80 }).default("Umum").notNull(),
+  tags: text("tags").notNull(),
   fileName: varchar("fileName", { length: 255 }).notNull(),
   fileKey: varchar("fileKey", { length: 512 }).notNull(),
   fileUrl: varchar("fileUrl", { length: 1024 }).notNull(),

@@ -128,3 +128,17 @@
 
 - [x] Tampilkan persentase hasil kuis PDF secara eksplisit bersama skor benar dan salah.
 - [x] Simpan checkpoint final setelah persentase kuis tervalidasi.
+
+# Permintaan ekspansi progres kuis dan metadata upload
+- [x] Simpan hasil kuis PDF ke riwayat kuis/progres pengguna.
+- [x] Pastikan hasil kuis PDF ikut dihitung pada poin dan leaderboard.
+- [x] Tambahkan ekspor ringkasan AI ke format PDF.
+- [x] Tambahkan kategori dan tag pada materi unggahan pengguna.
+- [x] Tambahkan filter dan pencarian berdasarkan kategori serta tag.
+- [x] Tambahkan test, validasi visual, build production, dan checkpoint.
+
+- [x] Tambahkan kontrol filter khusus kategori dan tag pada daftar materi unggahan.
+- [x] Simpan checkpoint setelah filter khusus dan seluruh fitur tervalidasi.
+
+- [x] Tambahkan dropdown atau chip filter tag terpisah dari pencarian bebas.
+- [x] Simpan checkpoint setelah filter kategori dan tag tervalidasi.

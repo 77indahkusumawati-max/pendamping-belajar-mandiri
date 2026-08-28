@@ -7,6 +7,7 @@ import {
   Upload,
   BarChart3,
   Sparkles,
+  Printer,
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -73,6 +74,11 @@ export default function Profile() {
     },
     onError: () => toast.error("Materi belum dapat diunggah"),
   });
+  const savePdfQuiz = trpc.quiz.submit.useMutation({
+    onSuccess: () =>
+      toast.success("Hasil kuis PDF tersimpan ke progres dan leaderboard"),
+    onError: () => toast.error("Hasil kuis belum tersimpan"),
+  });
   const extractMaterial = trpc.uploads.extract.useMutation({
     onSuccess: () => {
       toast.success("Ringkasan dan kuis AI berhasil dibuat");
@@ -89,6 +95,12 @@ export default function Profile() {
   const [preferredTrack, setPreferredTrack] = useState("Semua jalur");
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("Umum");
+  const [tags, setTags] = useState("");
+  const [uploadSearch, setUploadSearch] = useState("");
+  const [uploadCategoryFilter, setUploadCategoryFilter] =
+    useState("Semua kategori");
+  const [uploadTagFilter, setUploadTagFilter] = useState("Semua tag");
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<Record<number, boolean>>(
     {}
@@ -118,6 +130,16 @@ export default function Profile() {
       setPreferredTrack(preferencesQuery.data.preferredTrack);
     }
   }, [preferencesQuery.data]);
+  const uploadTagOptions = Array.from(
+    new Set(
+      (uploadsQuery.data ?? []).flatMap(upload =>
+        upload.tags
+          .split(",")
+          .map(tag => tag.trim())
+          .filter(Boolean)
+      )
+    )
+  );
   const weeklyData = Object.entries(data?.weeklyActivity ?? {}).map(
     ([day, minutes]) => ({ day, menit: minutes })
   );
@@ -178,6 +200,57 @@ export default function Profile() {
         ? current.filter(value => value !== interest)
         : [...current, interest]
     );
+  const exportSummaryPdf = (title: string, summary: string) => {
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      toast.error("Izinkan pop-up untuk mengunduh PDF");
+      return;
+    }
+    const safeTitle = title.replace(/[<>]/g, "");
+    const safeSummary = summary.replace(/[<>]/g, "");
+    printWindow.document.write(
+      `<html><head><title>Ringkasan AI - ${safeTitle}</title><style>body{font-family:Arial,sans-serif;max-width:760px;margin:48px auto;color:#1c2421;line-height:1.7}h1{color:#e4694b}p{white-space:pre-wrap}</style></head><body><h1>Ringkasan AI</h1><h2>${safeTitle}</h2><p>${safeSummary}</p><p>temanbelajar · hasil ekstraksi materi</p></body></html>`
+    );
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+  const submitPdfQuiz = (
+    uploadId: number,
+    uploadTitle: string,
+    rawQuiz: string
+  ) => {
+    const quiz = parseQuiz(rawQuiz);
+    const score = quiz.reduce(
+      (total, question, questionIndex) =>
+        total +
+        (quizAnswers[`${uploadId}-${questionIndex}`] === question.answerIndex
+          ? 1
+          : 0),
+      0
+    );
+    savePdfQuiz.mutate({
+      quizKey: `PDF-${uploadId}-${uploadTitle}`.slice(0, 64),
+      score,
+      total: quiz.length,
+    });
+  };
+  const isQuizComplete = (uploadId: number, rawQuiz: string) =>
+    parseQuiz(rawQuiz).every(
+      (_, questionIndex) =>
+        quizAnswers[`${uploadId}-${questionIndex}`] !== undefined
+    );
+  const getQuizScore = (uploadId: number, rawQuiz: string) => {
+    const quiz = parseQuiz(rawQuiz);
+    return quiz.reduce(
+      (score, question, questionIndex) =>
+        score +
+        (quizAnswers[`${uploadId}-${questionIndex}`] === question.answerIndex
+          ? 1
+          : 0),
+      0
+    );
+  };
   const submitUpload = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!file || !title.trim()) {
@@ -206,6 +279,8 @@ export default function Profile() {
     });
     uploadMaterial.mutate({
       title,
+      category,
+      tags,
       fileName: file.name,
       mimeType,
       sizeBytes: file.size,
@@ -337,6 +412,32 @@ export default function Profile() {
                 placeholder="Judul materi"
                 className="w-full rounded-xl border border-[#1c2421]/12 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#e4694b]"
               />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-bold">
+                  Kategori
+                  <select
+                    value={category}
+                    onChange={event => setCategory(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-[#1c2421]/12 bg-[#fbf8f3] px-3 py-2.5 text-sm font-normal"
+                  >
+                    <option>Umum</option>
+                    <option>Matematika</option>
+                    <option>Bahasa</option>
+                    <option>Sains</option>
+                    <option>Teknologi</option>
+                    <option>Produktivitas</option>
+                  </select>
+                </label>
+                <label className="text-sm font-bold">
+                  Tag
+                  <input
+                    value={tags}
+                    onChange={event => setTags(event.target.value)}
+                    placeholder="contoh: ujian, dasar, praktik"
+                    className="mt-2 w-full rounded-xl border border-[#1c2421]/12 bg-transparent px-3 py-2.5 text-sm font-normal"
+                  />
+                </label>
+              </div>
               <input
                 required
                 type="file"
@@ -352,154 +453,225 @@ export default function Profile() {
                 {uploadMaterial.isPending ? "Mengunggah..." : "Unggah materi"}
               </button>
             </form>
-            <div className="mt-5 space-y-2">
-              {(uploadsQuery.data ?? []).map(upload => (
-                <div key={upload.id} className="rounded-xl bg-[#f1ece3] p-3">
-                  <a
-                    href={upload.fileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between text-sm font-bold text-[#1c2421] hover:text-[#e4694b]"
-                  >
-                    <span className="truncate">
-                      {upload.title}
-                      <small className="ml-2 font-normal text-[#46564d]">
-                        {upload.fileName}
-                      </small>
-                    </span>
-                    <Download size={15} />
-                  </a>
-                  <button
-                    onClick={() => deleteUpload.mutate({ id: upload.id })}
-                    className="mt-2 text-xs font-bold text-[#9b4938]"
-                  >
-                    Hapus unggahan
-                  </button>
-                  {upload.mimeType === "application/pdf" && (
-                    <button
-                      onClick={() => extractMaterial.mutate({ id: upload.id })}
-                      disabled={extractMaterial.isPending}
-                      className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#dce8d9] px-3 py-2 text-xs font-bold text-[#173b25]"
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              <input
+                value={uploadSearch}
+                onChange={event => setUploadSearch(event.target.value)}
+                placeholder="Cari judul atau tag..."
+                className="w-full rounded-xl border border-[#1c2421]/12 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#e4694b]"
+              />
+              <select
+                value={uploadCategoryFilter}
+                onChange={event => setUploadCategoryFilter(event.target.value)}
+                className="w-full rounded-xl border border-[#1c2421]/12 bg-[#fbf8f3] px-3 py-2.5 text-sm"
+              >
+                <option>Semua kategori</option>
+                <option>Umum</option>
+                <option>Matematika</option>
+                <option>Bahasa</option>
+                <option>Sains</option>
+                <option>Teknologi</option>
+                <option>Produktivitas</option>
+              </select>
+              <select
+                value={uploadTagFilter}
+                onChange={event => setUploadTagFilter(event.target.value)}
+                className="w-full rounded-xl border border-[#1c2421]/12 bg-[#fbf8f3] px-3 py-2.5 text-sm"
+              >
+                <option>Semua tag</option>
+                {uploadTagOptions.map(tag => (
+                  <option key={tag}>{tag}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-3 space-y-2">
+              {(uploadsQuery.data ?? [])
+                .filter(
+                  upload =>
+                    (uploadCategoryFilter === "Semua kategori" ||
+                      upload.category === uploadCategoryFilter) &&
+                    (uploadTagFilter === "Semua tag" ||
+                      upload.tags
+                        .split(",")
+                        .map(tag => tag.trim())
+                        .includes(uploadTagFilter)) &&
+                    `${upload.title} ${upload.category} ${upload.tags}`
+                      .toLowerCase()
+                      .includes(uploadSearch.toLowerCase())
+                )
+                .map(upload => (
+                  <div key={upload.id} className="rounded-xl bg-[#f1ece3] p-3">
+                    <a
+                      href={upload.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between text-sm font-bold text-[#1c2421] hover:text-[#e4694b]"
                     >
-                      <Sparkles size={14} /> Buat ringkasan & kuis AI
+                      <span className="truncate">
+                        {upload.title}
+                        <small className="ml-2 font-normal text-[#46564d]">
+                          {upload.fileName}
+                        </small>
+                        <small className="ml-2 font-normal text-[#52715b]">
+                          {upload.category} · {upload.tags || "tanpa tag"}
+                        </small>
+                      </span>
+                      <Download size={15} />
+                    </a>
+                    <button
+                      onClick={() => deleteUpload.mutate({ id: upload.id })}
+                      className="mt-2 text-xs font-bold text-[#9b4938]"
+                    >
+                      Hapus unggahan
                     </button>
-                  )}
-                  {upload.aiSummary && (
-                    <div className="mt-3 rounded-lg bg-[#eef3ec] p-3 text-xs leading-5 text-[#31533c]">
-                      <strong>Ringkasan AI:</strong> {upload.aiSummary}
-                      {upload.aiQuiz && (
-                        <details className="mt-2">
-                          <summary className="cursor-pointer font-bold">
-                            Buka kuis interaktif
-                          </summary>
-                          <div className="mt-2 space-y-2">
-                            {parseQuiz(upload.aiQuiz).map((question, index) => (
-                              <div
-                                key={question.question}
-                                className="rounded-lg bg-white/60 p-2"
-                              >
-                                <p className="font-bold">
-                                  {index + 1}. {question.question}
-                                </p>
-                                <div className="mt-1 grid gap-1">
-                                  {question.options.map(
-                                    (option, optionIndex) => (
-                                      <button
-                                        key={option}
-                                        onClick={() => {
-                                          setQuizAnswers(current => ({
-                                            ...current,
-                                            [`${upload.id}-${index}`]:
-                                              optionIndex,
-                                          }));
-                                          setQuizSubmitted(current => ({
-                                            ...current,
-                                            [upload.id]: true,
-                                          }));
-                                        }}
-                                        className={`rounded px-2 py-1 text-left hover:bg-[#dce8d9] ${quizSubmitted[upload.id] ? (optionIndex === question.answerIndex ? "bg-[#dce8d9] text-[#173b25]" : quizAnswers[`${upload.id}-${index}`] === optionIndex ? "bg-[#f8e9e2] text-[#9b4938]" : "bg-white/70") : "bg-white/70"}`}
-                                      >
-                                        {option}
-                                      </button>
-                                    )
-                                  )}
-                                </div>
-                                {quizSubmitted[upload.id] &&
-                                  quizAnswers[`${upload.id}-${index}`] !==
-                                    undefined && (
-                                    <p
-                                      className={`mt-2 text-xs font-bold ${quizAnswers[`${upload.id}-${index}`] === question.answerIndex ? "text-[#173b25]" : "text-[#9b4938]"}`}
-                                    >
-                                      {quizAnswers[`${upload.id}-${index}`] ===
-                                      question.answerIndex
-                                        ? "Benar. Jawabanmu tepat."
-                                        : `Belum tepat. ${question.explanation}`}
+                    {upload.mimeType === "application/pdf" && (
+                      <button
+                        onClick={() =>
+                          extractMaterial.mutate({ id: upload.id })
+                        }
+                        disabled={extractMaterial.isPending}
+                        className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#dce8d9] px-3 py-2 text-xs font-bold text-[#173b25]"
+                      >
+                        <Sparkles size={14} /> Buat ringkasan & kuis AI
+                      </button>
+                    )}
+                    {upload.aiSummary && (
+                      <div className="mt-3 rounded-lg bg-[#eef3ec] p-3 text-xs leading-5 text-[#31533c]">
+                        <strong>Ringkasan AI:</strong> {upload.aiSummary}{" "}
+                        <button
+                          onClick={() =>
+                            exportSummaryPdf(
+                              upload.title,
+                              upload.aiSummary ?? ""
+                            )
+                          }
+                          className="ml-2 inline-flex items-center gap-1 rounded-lg bg-[#e4694b] px-2 py-1 text-[11px] font-bold text-white"
+                        >
+                          <Printer size={12} /> Unduh PDF
+                        </button>
+                        {upload.aiQuiz && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer font-bold">
+                              Buka kuis interaktif
+                            </summary>
+                            <div className="mt-2 space-y-2">
+                              {parseQuiz(upload.aiQuiz).map(
+                                (question, index) => (
+                                  <div
+                                    key={question.question}
+                                    className="rounded-lg bg-white/60 p-2"
+                                  >
+                                    <p className="font-bold">
+                                      {index + 1}. {question.question}
                                     </p>
-                                  )}
-                              </div>
-                            ))}
-                          </div>
-                          {quizSubmitted[upload.id] && (
-                            <button
-                              onClick={() => {
-                                setQuizSubmitted(current => ({
-                                  ...current,
-                                  [upload.id]: false,
-                                }));
-                                setQuizAnswers(current =>
-                                  Object.fromEntries(
-                                    Object.entries(current).filter(
-                                      ([key]) =>
-                                        !key.startsWith(`${upload.id}-`)
+                                    <div className="mt-1 grid gap-1">
+                                      {question.options.map(
+                                        (option, optionIndex) => (
+                                          <button
+                                            key={option}
+                                            onClick={() => {
+                                              setQuizAnswers(current => ({
+                                                ...current,
+                                                [`${upload.id}-${index}`]:
+                                                  optionIndex,
+                                              }));
+                                              setQuizSubmitted(current => ({
+                                                ...current,
+                                                [upload.id]: true,
+                                              }));
+                                            }}
+                                            className={`rounded px-2 py-1 text-left hover:bg-[#dce8d9] ${quizSubmitted[upload.id] ? (optionIndex === question.answerIndex ? "bg-[#dce8d9] text-[#173b25]" : quizAnswers[`${upload.id}-${index}`] === optionIndex ? "bg-[#f8e9e2] text-[#9b4938]" : "bg-white/70") : "bg-white/70"}`}
+                                          >
+                                            {option}
+                                          </button>
+                                        )
+                                      )}
+                                    </div>
+                                    {quizSubmitted[upload.id] &&
+                                      quizAnswers[`${upload.id}-${index}`] !==
+                                        undefined && (
+                                        <p
+                                          className={`mt-2 text-xs font-bold ${quizAnswers[`${upload.id}-${index}`] === question.answerIndex ? "text-[#173b25]" : "text-[#9b4938]"}`}
+                                        >
+                                          {quizAnswers[
+                                            `${upload.id}-${index}`
+                                          ] === question.answerIndex
+                                            ? "Benar. Jawabanmu tepat."
+                                            : `Belum tepat. ${question.explanation}`}
+                                        </p>
+                                      )}
+                                  </div>
+                                )
+                              )}
+                            </div>
+                            {quizSubmitted[upload.id] && (
+                              <button
+                                onClick={() => {
+                                  setQuizSubmitted(current => ({
+                                    ...current,
+                                    [upload.id]: false,
+                                  }));
+                                  setQuizAnswers(current =>
+                                    Object.fromEntries(
+                                      Object.entries(current).filter(
+                                        ([key]) =>
+                                          !key.startsWith(`${upload.id}-`)
+                                      )
                                     )
-                                  )
-                                );
-                              }}
-                              className="mt-2 text-xs font-bold text-[#e4694b]"
-                            >
-                              Ulangi kuis
-                            </button>
-                          )}
-                          {quizSubmitted[upload.id] && (
-                            <p className="mt-2 font-bold text-[#173b25]">
-                              Hasil kuis:{" "}
-                              {parseQuiz(upload.aiQuiz).reduce(
-                                (score, question, questionIndex) =>
-                                  score +
-                                  (quizAnswers[
-                                    `${upload.id}-${questionIndex}`
-                                  ] === question.answerIndex
-                                    ? 1
-                                    : 0),
-                                0
-                              )}
-                              /{parseQuiz(upload.aiQuiz).length} ·{" "}
-                              {Math.round(
-                                (parseQuiz(upload.aiQuiz).reduce(
-                                  (score, question, questionIndex) =>
-                                    score +
-                                    (quizAnswers[
-                                      `${upload.id}-${questionIndex}`
-                                    ] === question.answerIndex
-                                      ? 1
-                                      : 0),
-                                  0
-                                ) /
-                                  Math.max(
-                                    1,
-                                    parseQuiz(upload.aiQuiz).length
-                                  )) *
-                                  100
-                              )}
-                              %
-                            </p>
-                          )}
-                        </details>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                                  );
+                                }}
+                                className="mt-2 text-xs font-bold text-[#e4694b]"
+                              >
+                                Ulangi kuis
+                              </button>
+                            )}
+                            {quizSubmitted[upload.id] && (
+                              <div className="mt-2">
+                                <p className="font-bold text-[#173b25]">
+                                  Hasil kuis:{" "}
+                                  {getQuizScore(upload.id, upload.aiQuiz ?? "")}
+                                  /{parseQuiz(upload.aiQuiz ?? "").length} ·{" "}
+                                  {Math.round(
+                                    (getQuizScore(
+                                      upload.id,
+                                      upload.aiQuiz ?? ""
+                                    ) /
+                                      Math.max(
+                                        1,
+                                        parseQuiz(upload.aiQuiz ?? "").length
+                                      )) *
+                                      100
+                                  )}
+                                  %
+                                </p>
+                                {isQuizComplete(
+                                  upload.id,
+                                  upload.aiQuiz ?? ""
+                                ) && (
+                                  <button
+                                    onClick={() =>
+                                      submitPdfQuiz(
+                                        upload.id,
+                                        upload.title,
+                                        upload.aiQuiz ?? ""
+                                      )
+                                    }
+                                    disabled={savePdfQuiz.isPending}
+                                    className="mt-2 rounded-lg bg-[#e4694b] px-3 py-2 text-xs font-bold text-white"
+                                  >
+                                    {savePdfQuiz.isPending
+                                      ? "Menyimpan..."
+                                      : "Simpan hasil ke progres"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
             </div>
           </div>
         </section>

@@ -1,0 +1,1 @@
+ALTER TABLE `uploadedMaterials` MODIFY COLUMN `tags` text NOT NULL;
