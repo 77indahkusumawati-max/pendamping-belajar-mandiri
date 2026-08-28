@@ -71,3 +71,22 @@ html.dark [class*="text-[#65716a]"], html.dark [class*="text-[#8a938d]"], html.d
 html.dark [class*="text-[#31483a]"], html.dark [class*="text-[#52715b]"] { color: #b8d3bd !important; }
 html.dark [class*="border-[#1c2421]"] { border-color: rgba(237,242,237,.14) !important; }
 html.dark input, html.dark textarea { color: #edf2ed; }
+
+/* Kontras eksplisit untuk tema malam dan keluaran markdown AI. */
+html.dark {
+  --background: oklch(0.18 0.025 155);
+  --foreground: oklch(0.94 0.015 85);
+  --card: oklch(0.23 0.03 155);
+  --card-foreground: oklch(0.94 0.015 85);
+  --popover: oklch(0.23 0.03 155);
+  --popover-foreground: oklch(0.94 0.015 85);
+  --primary: oklch(0.78 0.12 35);
+  --primary-foreground: oklch(0.18 0.025 155);
+  --border: oklch(0.94 0.015 85 / 18%);
+  --input: oklch(0.94 0.015 85 / 18%);
+  --ring: oklch(0.78 0.12 35);
+}
+html.dark [class*="bg-[#eef3ec]"] { background-color: #dce8d9 !important; }
+html.dark [class*="bg-[#eef3ec]"] [class*="text-[#52715b]"] { color: #173b25 !important; }
+html.dark .prose, html.dark .prose p, html.dark .prose li, html.dark .prose strong, html.dark .prose h1, html.dark .prose h2, html.dark .prose h3 { color: #edf2ed !important; }
+html.dark .prose code { color: #173b25 !important; background: #dce8d9 !important; }

@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { addMaterialComment, addQuizAttempt, deleteMaterialComment, getAIConversation, getBookmarkedSubjects, getLeaderboard, getMaterialComments, getRecentQuizAttempts, getStudyProgress, moderateMaterialComment, saveAIConversation, toggleMaterialBookmark, updateMaterialComment, upsertStudyProgress } from "./db";
+import { addMaterialComment, addQuizAttempt, deleteMaterialComment, getAIConversation, getBookmarkedSubjects, getHiddenMaterialComments, getLeaderboard, getMaterialComments, getRecentQuizAttempts, getStudyProgress, moderateMaterialComment, saveAIConversation, toggleMaterialBookmark, updateMaterialComment, upsertStudyProgress } from "./db";
 import { invokeLLM } from "./_core/llm";
 
 export const appRouter = router({
@@ -62,6 +62,11 @@ export const appRouter = router({
   quiz: router({
     submit: protectedProcedure.input(z.object({ quizKey: z.string().max(64), score: z.number().int().min(0), total: z.number().int().positive() })).mutation(({ ctx, input }) => addQuizAttempt({ userId: ctx.user.id, ...input })),
     recent: protectedProcedure.query(({ ctx }) => getRecentQuizAttempts(ctx.user.id)),
+  }),
+  admin: router({
+    hiddenComments: adminProcedure.query(() => getHiddenMaterialComments()),
+    restoreComment: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => moderateMaterialComment(input.id, "visible")),
+    deleteComment: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => deleteMaterialComment(input.id, 0, true)),
   }),
   materials: router({
     bookmarks: protectedProcedure.query(({ ctx }) => getBookmarkedSubjects(ctx.user.id)),

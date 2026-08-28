@@ -170,6 +170,12 @@ export async function toggleMaterialBookmark(userId: number, subject: string) {
   return { bookmarked: true };
 }
 
+export async function getHiddenMaterialComments() {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select({ id: materialComments.id, subject: materialComments.subject, body: materialComments.body, status: materialComments.status, createdAt: materialComments.createdAt, updatedAt: materialComments.updatedAt, userId: materialComments.userId, userName: users.name }).from(materialComments).leftJoin(users, eq(materialComments.userId, users.id)).where(eq(materialComments.status, "hidden")).orderBy(desc(materialComments.updatedAt));
+}
+
 export async function getMaterialComments(subject: string, viewerId?: number, isAdmin = false) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");

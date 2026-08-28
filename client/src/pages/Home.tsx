@@ -30,6 +30,7 @@ import {
   Trophy,
   UserRound,
   X,
+  ShieldCheck,
 } from "lucide-react";
 
 const heroImage = "/manus-storage/signal-focus-hero_5232b3a4.png";
@@ -175,6 +176,7 @@ export default function Home() {
                 </button>
               ))}
             </nav>
+            {user?.role === "admin" && <Link href="/admin/komentar" className="mt-3 flex items-center gap-3 rounded-xl border border-[#e4694b]/25 bg-[#f8e9e2] px-3 py-3 text-sm font-bold text-[#9b4938] transition hover:bg-[#f2d6cd]"><ShieldCheck size={17} strokeWidth={1.8} /> Moderasi komentar</Link>}
           </div>
 
           <div className="mt-10">

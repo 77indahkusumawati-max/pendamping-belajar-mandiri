@@ -14,6 +14,7 @@ import Quiz from "./pages/Quiz";
 import Progress from "./pages/Progress";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
+import AdminComments from "./pages/AdminComments";
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#f6f1e8] text-sm text-[#65716a]">Memuat ruang belajar...</div>;
@@ -48,6 +49,10 @@ function ProtectedProfile() {
   return <RequireAuth><Profile /></RequireAuth>;
 }
 
+function ProtectedAdminComments() {
+  return <RequireAuth><AdminComments /></RequireAuth>;
+}
+
 function Router() {
   return (
     <Switch>
@@ -58,6 +63,7 @@ function Router() {
       <Route path="/progres" component={ProtectedProgress} />
       <Route path="/leaderboard" component={ProtectedLeaderboard} />
       <Route path="/profil" component={ProtectedProfile} />
+      <Route path="/admin/komentar" component={ProtectedAdminComments} />
       <Route path="/" component={AuthHome} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

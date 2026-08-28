@@ -77,3 +77,15 @@
 - [x] Tambahkan alur moderasi komentar untuk admin pada antarmuka atau dokumentasikan akses server-only secara eksplisit.
 - [x] Tambahkan unit test untuk conversation, updateComment, deleteComment, dan moderateComment.
 - [x] Simpan checkpoint baru setelah verifikasi batch fitur terbaru selesai.
+
+# Permintaan ekspansi berikutnya
+- [x] Perbaiki kontras teks AI dan elemen antarmuka agar terbaca pada tema terang dan gelap.
+- [x] Buat dashboard admin untuk memantau, memfilter, dan mengelola komentar tersembunyi.
+- [x] Tambahkan kategori tingkat kesulitan pada setiap materi dan tampilkan di katalog/detail.
+- [x] Buat rekomendasi materi berdasarkan progres dan materi yang sudah diselesaikan pengguna.
+- [x] Tambahkan ekspor riwayat percakapan AI per materi ke TXT dan PDF.
+- [x] Perluas katalog materi beragam untuk jenjang TK, SD, SMP, SMA/SMK, dan kuliah.
+- [x] Tambahkan test, validasi visual, build production, dan checkpoint untuk ekspansi ini.
+
+- [x] Tambahkan filter dashboard admin berdasarkan materi serta pencarian isi dan penulis komentar.
+- [x] Simpan checkpoint setelah filter admin dan ekspansi terbaru tervalidasi.

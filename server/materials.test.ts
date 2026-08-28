@@ -39,5 +39,12 @@ describe("material collaboration routes", () => {
     const caller = appRouter.createCaller(authenticatedContext("admin"));
     await expect(caller.materials.moderateComment({ id: 1, status: "blocked" as "hidden" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
+
+  it("protects the admin hidden-comment dashboard", async () => {
+    const caller = appRouter.createCaller(authenticatedContext("user"));
+    await expect(caller.admin.hiddenComments()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.admin.restoreComment({ id: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.admin.deleteComment({ id: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
 });
 
