@@ -158,3 +158,24 @@
 
 - [x] Reset halaman dokumen ketika kata kunci atau filter berubah dan clamp saat jumlah halaman berkurang.
 - [x] Simpan checkpoint setelah perbaikan pagination tervalidasi.
+
+# Permintaan ekspansi pembelajaran adaptif
+- [x] Buat jalur belajar adaptif berdasarkan progres, hasil kuis, minat, dan jalur pengguna.
+- [x] Tambahkan spaced repetition untuk materi atau topik yang perlu diulang.
+- [x] Tambahkan remedial otomatis setelah kuis berdasarkan jawaban salah.
+- [x] Tambahkan mode offline dengan cache materi dan indikator status koneksi.
+- [x] Tambahkan test, validasi visual, build production, dan checkpoint.
+
+# Penguatan fitur adaptif
+- [x] Hubungkan jalur adaptif dengan preferensi minat/jalur dan skor kuis untuk menentukan materi berikutnya.
+- [x] Implementasikan jadwal spaced repetition berbasis due date dan interval.
+- [x] Buat remedial berbasis jawaban salah/topik yang relevan.
+- [x] Tambahkan test untuk logika adaptif, remedial, dan service worker/offline.
+- [x] Simpan checkpoint setelah fitur adaptif tervalidasi.
+
+# Penguatan adaptif lanjutan
+- [x] Petakan quizKey dan topik salah ke materi konkret untuk jalur adaptif.
+- [x] Generalisasikan spaced repetition per topik dengan due date dan interval.
+- [x] Tampilkan remedial berdasarkan soal atau topik yang salah.
+- [x] Tambahkan unit test studyEngine dan logic offline.
+- [x] Simpan checkpoint final setelah penguatan tervalidasi.
