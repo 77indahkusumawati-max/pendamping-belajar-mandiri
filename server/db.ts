@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, aiConversations, materialBookmarks, materialComments, quizAttempts, studyProgress, users } from "../drizzle/schema";
+import { InsertUser, aiConversations, materialBookmarks, materialComments, managedMaterials, quizAttempts, studyPreferences, studyProgress, uploadedMaterials, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { and, or } from "drizzle-orm";
 
@@ -227,4 +227,55 @@ export async function saveAIConversation(userId: number, subject: string, entrie
   if (!db) throw new Error("Database is not available");
   if (entries.length) await db.insert(aiConversations).values(entries.map((entry) => ({ userId, subject, role: entry.role, message: entry.message })));
   return getAIConversation(userId, subject);
+}
+
+export async function getManagedMaterials() {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(managedMaterials).orderBy(desc(managedMaterials.updatedAt));
+}
+
+export async function upsertManagedMaterial(input: { id?: number; subject: string; title: string; summary: string; steps: string; source: string; level: string; difficulty: string; track: string; createdBy: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  if (input.id) {
+    await db.update(managedMaterials).set({ subject: input.subject, title: input.title, summary: input.summary, steps: input.steps, source: input.source, level: input.level, difficulty: input.difficulty, track: input.track, updatedAt: new Date() }).where(eq(managedMaterials.id, input.id));
+  } else {
+    await db.insert(managedMaterials).values(input);
+  }
+  return getManagedMaterials();
+}
+
+export async function deleteManagedMaterial(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(managedMaterials).where(eq(managedMaterials.id, id));
+  return { success: true };
+}
+
+export async function getStudyPreferences(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select().from(studyPreferences).where(eq(studyPreferences.userId, userId)).limit(1);
+  return rows[0] ?? { interests: "[]", preferredTrack: "Semua jalur" };
+}
+
+export async function upsertStudyPreferences(input: { userId: number; interests: string; preferredTrack: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(studyPreferences).values(input).onDuplicateKeyUpdate({ set: { interests: input.interests, preferredTrack: input.preferredTrack, updatedAt: new Date() } });
+  return getStudyPreferences(input.userId);
+}
+
+export async function getUploadedMaterials(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(uploadedMaterials).where(eq(uploadedMaterials.userId, userId)).orderBy(desc(uploadedMaterials.createdAt));
+}
+
+export async function saveUploadedMaterial(input: { userId: number; title: string; fileName: string; fileKey: string; fileUrl: string; mimeType: string; sizeBytes: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(uploadedMaterials).values(input);
+  return getUploadedMaterials(input.userId);
 }

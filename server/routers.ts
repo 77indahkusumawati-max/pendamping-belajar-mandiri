@@ -3,7 +3,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { addMaterialComment, addQuizAttempt, deleteMaterialComment, getAIConversation, getBookmarkedSubjects, getHiddenMaterialComments, getLeaderboard, getMaterialComments, getRecentQuizAttempts, getStudyProgress, moderateMaterialComment, saveAIConversation, toggleMaterialBookmark, updateMaterialComment, upsertStudyProgress } from "./db";
+import { addMaterialComment, addQuizAttempt, deleteMaterialComment, getAIConversation, getBookmarkedSubjects, getHiddenMaterialComments, getLeaderboard, getManagedMaterials, getMaterialComments, getRecentQuizAttempts, getStudyPreferences, getStudyProgress, getUploadedMaterials, moderateMaterialComment, saveAIConversation, saveUploadedMaterial, toggleMaterialBookmark, updateMaterialComment, upsertManagedMaterial, upsertStudyPreferences, upsertStudyProgress, deleteManagedMaterial } from "./db";
+import { storagePut } from "./storage";
 import { invokeLLM } from "./_core/llm";
 
 export const appRouter = router({
@@ -65,10 +66,27 @@ export const appRouter = router({
   }),
   admin: router({
     hiddenComments: adminProcedure.query(() => getHiddenMaterialComments()),
+    materials: adminProcedure.query(() => getManagedMaterials()),
+    saveMaterial: adminProcedure.input(z.object({ id: z.number().int().positive().optional(), subject: z.string().trim().min(2).max(120), title: z.string().trim().min(2).max(180), summary: z.string().trim().min(10).max(3000), steps: z.string().trim().min(10).max(10000), source: z.string().trim().min(2).max(255), level: z.enum(["TK", "SD", "SMP", "SMA", "SMK", "Kuliah"]), difficulty: z.enum(["Pemula", "Menengah", "Lanjutan"]), track: z.string().trim().min(2).max(80) })).mutation(({ ctx, input }) => upsertManagedMaterial({ ...input, createdBy: ctx.user.id })),
+    deleteMaterial: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => deleteManagedMaterial(input.id)),
     restoreComment: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => moderateMaterialComment(input.id, "visible")),
     deleteComment: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => deleteMaterialComment(input.id, 0, true)),
   }),
+  preferences: router({
+    get: protectedProcedure.query(({ ctx }) => getStudyPreferences(ctx.user.id)),
+    save: protectedProcedure.input(z.object({ interests: z.array(z.string().min(1).max(80)).max(10), preferredTrack: z.string().min(1).max(80) })).mutation(({ ctx, input }) => upsertStudyPreferences({ userId: ctx.user.id, interests: JSON.stringify(input.interests), preferredTrack: input.preferredTrack })),
+  }),
+  uploads: router({
+    list: protectedProcedure.query(({ ctx }) => getUploadedMaterials(ctx.user.id)),
+    create: protectedProcedure.input(z.object({ title: z.string().trim().min(2).max(180), fileName: z.string().trim().min(1).max(255), mimeType: z.enum(["text/plain", "text/markdown", "application/pdf"]), sizeBytes: z.number().int().positive().max(5_000_000), dataBase64: z.string().min(20).max(7_000_000) })).mutation(async ({ ctx, input }) => {
+      const buffer = Buffer.from(input.dataBase64, "base64");
+      if (buffer.length > 5_000_000) throw new Error("Ukuran materi maksimal 5 MB");
+      const stored = await storagePut(`user-materials/${ctx.user.id}/${input.fileName}`, buffer, input.mimeType);
+      return saveUploadedMaterial({ userId: ctx.user.id, title: input.title, fileName: input.fileName, mimeType: input.mimeType, sizeBytes: buffer.length, fileKey: stored.key, fileUrl: stored.url });
+    }),
+  }),
   materials: router({
+    managed: protectedProcedure.query(() => getManagedMaterials()),
     bookmarks: protectedProcedure.query(({ ctx }) => getBookmarkedSubjects(ctx.user.id)),
     toggleBookmark: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120) })).mutation(({ ctx, input }) => toggleMaterialBookmark(ctx.user.id, input.subject)),
     comments: protectedProcedure.input(z.object({ subject: z.string().min(1).max(120) })).query(({ ctx, input }) => getMaterialComments(input.subject, ctx.user.id, ctx.user.role === "admin")),

@@ -176,7 +176,7 @@ export default function Home() {
                 </button>
               ))}
             </nav>
-            {user?.role === "admin" && <Link href="/admin/komentar" className="mt-3 flex items-center gap-3 rounded-xl border border-[#e4694b]/25 bg-[#f8e9e2] px-3 py-3 text-sm font-bold text-[#9b4938] transition hover:bg-[#f2d6cd]"><ShieldCheck size={17} strokeWidth={1.8} /> Moderasi komentar</Link>}
+            {user?.role === "admin" && <><Link href="/admin/komentar" className="mt-3 flex items-center gap-3 rounded-xl border border-[#e4694b]/25 bg-[#f8e9e2] px-3 py-3 text-sm font-bold text-[#9b4938] transition hover:bg-[#f2d6cd]"><ShieldCheck size={17} strokeWidth={1.8} /> Moderasi komentar</Link><Link href="/admin/materi" className="mt-2 flex items-center gap-3 rounded-xl border border-[#6e9978]/25 bg-[#dce8d9] px-3 py-3 text-sm font-bold text-[#173b25] transition hover:bg-[#c9ddc9]"><BookOpen size={17} strokeWidth={1.8} /> Editor materi</Link></>}
           </div>
 
           <div className="mt-10">

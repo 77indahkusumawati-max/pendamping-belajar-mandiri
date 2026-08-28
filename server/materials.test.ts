@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { vi } from "vitest";
+vi.mock("./storage", () => ({ storagePut: vi.fn(async () => ({ key: "test/material.txt", url: "/manus-storage/test/material.txt" })) }));
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -45,6 +47,32 @@ describe("material collaboration routes", () => {
     await expect(caller.admin.hiddenComments()).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.admin.restoreComment({ id: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.admin.deleteComment({ id: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("protects editor and upload procedures", async () => {
+    const caller = appRouter.createCaller(authenticatedContext("user"));
+    await expect(caller.admin.materials()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.admin.saveMaterial({ subject: "X", title: "X", summary: "terlalu pendek", steps: "x", source: "x", level: "SMK", difficulty: "Pemula", track: "Teknologi" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.uploads.create({ title: "Materi", fileName: "materi.exe", mimeType: "application/x-executable" as "application/pdf", sizeBytes: 10, dataBase64: "aGVsbG8gd29ybGQgdGVzdCBtYXRlcmlhbCB1cGxvYWQ=" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("reads the new editor, preference, and upload surfaces", async () => {
+    const adminCaller = appRouter.createCaller(authenticatedContext("admin"));
+    const userCaller = appRouter.createCaller(authenticatedContext("user"));
+    await expect(adminCaller.admin.materials()).resolves.toBeInstanceOf(Array);
+    await expect(userCaller.preferences.get()).resolves.toHaveProperty("preferredTrack");
+    await expect(userCaller.uploads.list()).resolves.toBeInstanceOf(Array);
+  });
+
+  it("accepts valid editor, preference, and upload mutations", async () => {
+    const adminCaller = appRouter.createCaller(authenticatedContext("admin"));
+    const userCaller = appRouter.createCaller(authenticatedContext("user"));
+    const subject = `Test Materi ${Date.now()}`;
+    await expect(adminCaller.admin.saveMaterial({ subject, title: "Materi Uji", summary: "Ringkasan materi uji yang cukup panjang", steps: "Langkah pertama\\nLangkah kedua", source: "Sumber internal", level: "SMK", difficulty: "Pemula", track: "Teknologi" })).resolves.toBeInstanceOf(Array);
+    await expect(userCaller.preferences.save({ interests: ["Teknologi"], preferredTrack: "Teknologi" })).resolves.toHaveProperty("preferredTrack", "Teknologi");
+    await expect(userCaller.uploads.create({ title: "Catatan Uji", fileName: "catatan.txt", mimeType: "text/plain", sizeBytes: 11, dataBase64: "aGVsbG8gd29ybGQgdGVzdCBtYXRlcmlhbCB1cGxvYWQ=" })).resolves.toBeInstanceOf(Array);
+    const created = (await adminCaller.admin.materials()).find((material) => material.subject === subject);
+    if (created) await adminCaller.admin.deleteMaterial({ id: created.id });
   });
 });
 

@@ -89,3 +89,20 @@
 
 - [x] Tambahkan filter dashboard admin berdasarkan materi serta pencarian isi dan penulis komentar.
 - [x] Simpan checkpoint setelah filter admin dan ekspansi terbaru tervalidasi.
+
+# Permintaan ekspansi editor dan unggahan
+- [x] Buat tabel dan API materi yang dapat dibuat serta diperbarui admin.
+- [x] Buat editor materi admin dengan validasi judul, ringkasan, langkah, jenjang, tingkat kesulitan, dan jalur belajar.
+- [x] Tambahkan preferensi minat dan jalur belajar pengguna untuk memfilter rekomendasi.
+- [x] Tambahkan visualisasi progres pada halaman profil.
+- [x] Tambahkan unggah materi pengguna menggunakan penyimpanan aman dan metadata materi.
+- [x] Sediakan alur membaca materi unggahan pengguna.
+- [x] Tambahkan test, validasi visual, build production, dan checkpoint.
+
+- [x] Batasi rekomendasi secara nyata berdasarkan jalur atau minat yang dipilih, dengan fallback yang jelas bila tidak ada kecocokan.
+- [x] Tambahkan test sukses untuk editor materi, preferensi, dan validasi upload.
+- [x] Simpan checkpoint final setelah penyempurnaan dan validasi selesai.
+
+- [x] Tambahkan fallback rekomendasi eksplisit saat minat atau jalur tidak menemukan materi yang cocok.
+- [x] Tambahkan test sukses mutation preferensi, editor admin, dan upload dengan storage terisolasi.
+- [x] Simpan checkpoint setelah celah validasi terakhir tertutup.

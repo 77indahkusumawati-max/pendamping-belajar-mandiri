@@ -75,3 +75,38 @@ export const materialComments = mysqlTable("materialComments", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+export const managedMaterials = mysqlTable("managedMaterials", {
+  id: int("id").autoincrement().primaryKey(),
+  subject: varchar("subject", { length: 120 }).notNull().unique(),
+  title: varchar("title", { length: 180 }).notNull(),
+  summary: text("summary").notNull(),
+  steps: text("steps").notNull(),
+  source: varchar("source", { length: 255 }).notNull(),
+  level: varchar("level", { length: 32 }).notNull(),
+  difficulty: varchar("difficulty", { length: 32 }).notNull(),
+  track: varchar("track", { length: 80 }).notNull(),
+  createdBy: int("createdBy").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const studyPreferences = mysqlTable("studyPreferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  interests: text("interests").notNull(),
+  preferredTrack: varchar("preferredTrack", { length: 80 }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const uploadedMaterials = mysqlTable("uploadedMaterials", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  fileUrl: varchar("fileUrl", { length: 1024 }).notNull(),
+  mimeType: varchar("mimeType", { length: 120 }).notNull(),
+  sizeBytes: int("sizeBytes").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
